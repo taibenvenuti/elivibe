@@ -1,0 +1,119 @@
+# Inactive outside workflows/. Enabling this file is a separate owner-approved change.
+name: Publish reviewed subsequent GitHub release
+on:
+  workflow_dispatch:
+    inputs:
+      trusted_sha:
+        description: Reviewed full SHA at the head of main
+        type: string
+        required: true
+      expected_version:
+        description: Approved stable version after v0.1.0 bootstrap
+        type: string
+        required: true
+      dry_run:
+        description: Check authenticated version and permissions without publishing
+        type: boolean
+        default: true
+permissions:
+  contents: read
+concurrency:
+  group: elivibe-publication
+  cancel-in-progress: false
+jobs:
+  review:
+    if: github.ref == 'refs/heads/main' && github.sha == inputs.trusted_sha
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ inputs.trusted_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Require successful hosted product and native checks for this main SHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ELIVIBE_SHA: ${{ inputs.trusted_sha }}
+        run: |
+          endpoint="repos/$GITHUB_REPOSITORY/actions"
+          runs=$(gh api --method GET "$endpoint/workflows/ci.yml/runs" \
+            -f branch=main -f event=push -f status=success -f head_sha="$ELIVIBE_SHA" -F per_page=20)
+          run=$(printf '%s\n' "$runs" | jq -er --arg sha "$ELIVIBE_SHA" '
+            [.workflow_runs[] | select(.head_sha == $sha and .head_branch == "main"
+              and .event == "push" and .status == "completed" and .conclusion == "success")]
+            | first | [.id, .run_attempt]
+            | select(all(.[]; type == "number" and . > 0)) | join("/")')
+          jobs=$(gh api "$endpoint/runs/${run%/*}/attempts/${run#*/}/jobs?per_page=100")
+          printf '%s\n' "$jobs" | jq -e --arg sha "$ELIVIBE_SHA" '
+            [.jobs[] | select(.head_sha == $sha and .status == "completed"
+              and .conclusion == "success") | .name] as $passed
+            | ($passed | map(select(. == "Product checks (Linux, Python 3.14, Node 24)")) | length == 1)
+              and ($passed | map(select(. == "Native OMP smoke (Linux x64)")) | length == 1)' >/dev/null
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: '3.14.4'
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+        with:
+          version: '0.12.5'
+          enable-cache: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24.21.0'
+      - run: sh tools/check --setup
+      # tools/check runs the disposable release-rule fixtures as part of its normal gates.
+      - name: Rebuild and verify licensed assets for the approved revision
+        env:
+          ELIVIBE_SHA: ${{ inputs.trusted_sha }}
+          ELIVIBE_EXPECTED_VERSION: ${{ inputs.expected_version }}
+          ELIVIBE_LICENSE_ID: ${{ vars.ELIVIBE_LICENSE_ID }}
+          ELIVIBE_APPROVAL: ${{ vars.ELIVIBE_APPROVAL }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          case "$DRY_RUN" in
+            true) operation=preview ;;
+            false) operation=publish ;;
+            *) exit 1 ;;
+          esac
+          test "$ELIVIBE_APPROVAL" = "$operation:$ELIVIBE_SHA:$ELIVIBE_EXPECTED_VERSION:$ELIVIBE_LICENSE_ID"
+          test -n "$ELIVIBE_LICENSE_ID"
+          git merge-base --is-ancestor 'refs/tags/v0.1.0^{commit}' "$ELIVIBE_SHA"
+          python tools/package.py rehearse --version "$ELIVIBE_EXPECTED_VERSION" --commit "$ELIVIBE_SHA" --license-id "$ELIVIBE_LICENSE_ID"
+  release:
+    needs: review
+    if: github.ref == 'refs/heads/main' && github.sha == inputs.trusted_sha
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ inputs.trusted_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: '3.14.4'
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24.21.0'
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Preview or publish exactly the approved release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ELIVIBE_SHA: ${{ inputs.trusted_sha }}
+          ELIVIBE_EXPECTED_VERSION: ${{ inputs.expected_version }}
+          ELIVIBE_LICENSE_ID: ${{ vars.ELIVIBE_LICENSE_ID }}
+          ELIVIBE_APPROVAL: ${{ vars.ELIVIBE_APPROVAL }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          case "$DRY_RUN" in
+            true) set -- --dry-run ;;
+            false) set -- --publish ;;
+            *) exit 1 ;;
+          esac
+          node .github/release-publish.mjs "$@"

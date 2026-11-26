@@ -1,0 +1,76 @@
+name: Product checks
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited, ready_for_review]
+  push:
+    branches: [main, 'bootstrap/**', 'release-readiness/**']
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  product:
+    name: Product checks (Linux, Python 3.14, Node 24)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: '3.14.4'
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+        with:
+          version: '0.12.5'
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+          cache-suffix: cpython-3.14.4
+          save-cache: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24.21.0'
+      - name: Install locked development tools and check the checkout
+        run: sh tools/check --setup
+
+  native:
+    name: Native OMP smoke (Linux x64)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: '3.14.4'
+      - name: Install bubblewrap without relaxing runner isolation
+        run: |
+          if ! command -v bwrap >/dev/null; then
+            sudo apt-get update -q
+            sudo apt-get install --yes --no-install-recommends bubblewrap
+          fi
+      - name: Verify the pinned OMP executable
+        run: |
+          curl -fsSL --proto '=https' --proto-redir '=https' --max-time 60 \
+            https://github.com/can1357/oh-my-pi/releases/download/v19.2.1/omp-linux-x64 \
+            -o "$RUNNER_TEMP/omp"
+          printf '%s  %s\n' e8b937f9bf023baa147bdd300ad5421af0a6ef8b1f350c47a9a93d5fca94feca \
+            "$RUNNER_TEMP/omp" | sha256sum --check
+          chmod +x "$RUNNER_TEMP/omp"
+      - name: Exercise the verified artifacts in an isolated native session
+        run: |
+          sha=$(git rev-parse HEAD)
+          candidate=0.0.0-rc.1
+          update=0.0.0-rc.2
+          mkdir "$RUNNER_TEMP/candidate" "$RUNNER_TEMP/update"
+          python tools/package.py build --output-dir "$RUNNER_TEMP/candidate" --version "$candidate" --commit "$sha"
+          python tools/package.py verify --output-dir "$RUNNER_TEMP/candidate" --version "$candidate" --commit "$sha"
+          python tools/package.py build --output-dir "$RUNNER_TEMP/update" --version "$update" --commit "$sha"
+          python tools/package.py verify --output-dir "$RUNNER_TEMP/update" --version "$update" --commit "$sha"
+          python tools/omp_smoke.py --omp "$RUNNER_TEMP/omp" \
+            --skill-archive "$RUNNER_TEMP/candidate/elivibe-$candidate.zip" \
+            --archive "$RUNNER_TEMP/candidate/elivibe-omp-$candidate.tar.gz" \
+            --update-archive "$RUNNER_TEMP/update/elivibe-omp-$update.tar.gz"

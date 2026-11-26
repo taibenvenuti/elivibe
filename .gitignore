@@ -1,0 +1,17 @@
+/research/sources/
+/results/*
+!/results/README.md
+/.omp/
+/.agents/*
+!/.agents/skills/
+/.agents/skills/*
+!/.agents/skills/elivibe
+/.venv/
+/__pycache__/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.env
+.env.*
+*.log
+/node_modules/

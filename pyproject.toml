@@ -1,0 +1,19 @@
+[project]
+name = "elivibe-eval"
+# Developer-only virtual project metadata; distribution versions are Git tags.
+version = "0.0.0"
+requires-python = ">=3.14,<3.15"
+dependencies = []
+
+[dependency-groups]
+dev = ["jsonschema==4.26.0", "pytest==9.0.3", "referencing==0.37.0", "ruff==0.16.6"]
+
+[tool.uv]
+package = false
+required-version = "==0.12.5"
+
+[tool.pytest.ini_options]
+testpaths = ["tests/product"]
+
+[tool.ruff]
+target-version = "py314"

@@ -1,0 +1,47 @@
+#!/bin/sh
+set -eu
+cd "$(dirname "$0")/.."
+
+python3.14 tools/check_dev.py
+
+if [ "${1-}" = --setup ]; then
+    shift
+    uv sync --locked --no-python-downloads --no-build
+    npm ci --ignore-scripts --no-audit --no-fund
+    if [ "$(uname -s):$(uname -m)" != Linux:x86_64 ]; then
+        echo 'Automatic actionlint setup requires Linux x64; install actionlint 1.7.12 and put it on PATH.' >&2
+        exit 1
+    fi
+    scratch=$(mktemp -d)
+    trap 'rm -rf "$scratch"' 0
+    curl -fsSL --proto '=https' --proto-redir '=https' --max-time 60 \
+        https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz \
+        -o "$scratch/actionlint.tar.gz"
+    printf '%s  %s\n' 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8 \
+        "$scratch/actionlint.tar.gz" | sha256sum --check --status
+    tar -xzf "$scratch/actionlint.tar.gz" -C "$scratch" actionlint
+    install -m 0755 "$scratch/actionlint" .venv/bin/actionlint
+fi
+
+if [ "$#" -ne 0 ]; then
+    echo 'usage: sh tools/check [--setup]' >&2
+    exit 2
+fi
+
+actionlint=actionlint
+if [ -x .venv/bin/actionlint ]; then
+    actionlint=.venv/bin/actionlint
+fi
+if ! "$actionlint" -version | grep -qx '1.7.12'; then
+    echo 'Expected actionlint 1.7.12; run sh tools/check --setup or install it on PATH.' >&2
+    exit 1
+fi
+"$actionlint" -no-color -shellcheck='' -pyflakes='' .github/workflows/*.yml .github/release-workflow.yml
+
+set -- tools/package.py tools/omp_smoke.py tools/check_dev.py tools/check_dev_test.py tests/product
+uv run --no-sync ruff format --check "$@"
+uv run --no-sync ruff check "$@"
+uv run --no-sync python -m pytest -q tests/product tools/check_dev_test.py
+node node_modules/typescript/bin/tsc --project tsconfig.json
+node --test tests/plugin/*.test.ts
+node tools/release-rules.mjs

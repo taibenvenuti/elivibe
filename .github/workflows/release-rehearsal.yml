@@ -1,0 +1,43 @@
+name: Release rehearsal (no publication)
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Explicit local candidate version
+        type: string
+        default: '0.1.0'
+        required: true
+      bootstrap:
+        description: Require an untagged initial 0.1.0
+        type: boolean
+        default: true
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  rehearsal:
+    name: Disposable release rules and candidate packages
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: '3.14.4'
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24.21.0'
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: node tools/release-rules.mjs
+      - name: Rebuild and inspect both packages (no upload)
+        env:
+          CANDIDATE: ${{ inputs.version }}
+          BOOTSTRAP: ${{ inputs.bootstrap }}
+        run: |
+          if [ "$BOOTSTRAP" = true ]; then set -- --bootstrap; fi
+          python tools/package.py rehearse --version "$CANDIDATE" --commit "$GITHUB_SHA" "$@"
