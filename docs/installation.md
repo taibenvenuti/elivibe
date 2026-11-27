@@ -18,12 +18,12 @@ If you want the published **native plugin** instead, download `elivibe-omp-0.1.0
 
 ## Install the OMP candidate
 
-Use OMP 19.2.1 in the intended profile. Pick **one** source. The plugin bundles the skill. A GitHub ref, an npm package and a release archive become available independently; check [status](status.md) first.
+Use OMP 19.2.1 in the intended profile. Pick **one** source for the unreleased v1.0.0 candidate. The plugin bundles the skill. A GitHub ref, an npm package and a release archive become available independently; check [status](status.md) first.
 
 | Source | OMP command | When to run |
 |---|---|---|
-| GitHub | `omp plugin install github:taibenvenuti/elivibe#<reviewed-full-sha>` | **Pending push and verification.** Replace `<reviewed-full-sha>` with the confirmed full commit SHA (no angle brackets) once that exact GitHub commit is available and the route is verified. Don't use an old tag or a moving branch in its place. |
-| npm | No public install command yet. | The candidate passed a local registry install, not a public one. Wait for a version linked by this project; an npm listing under the same name is not enough. See the [publication and verification procedure](release.md). |
+| GitHub | No verified install command yet. | **Pending verification from an exact reviewed commit.** Use the local checkout until a verified pin is listed here. Don't substitute an old tag or a moving branch. |
+| npm | No public install command. | A historical 0.2.0 loopback-registry install does not establish a public listing or verify 1.0.0. Wait for a version linked by this project; an npm listing under the same name is not enough. See the [publication and verification procedure](release.md). |
 | Local checkout | `omp plugin link "$PWD"` | Available for local review now. Run from the root of a clean checkout at the reviewed candidate commit. OMP loads the files directly: keep the directory intact and unchanged while linked. |
 | Verified native archive | `omp plugin link /absolute/path/to/extracted/elivibe-omp` | Offline alternative. Use the [published v0.1.0 archive](#try-the-published-release) for that version. Use the equivalent [archive verification steps](#verify-and-link-an-offline-archive) for any trusted candidate archive you already have. |
 
@@ -50,8 +50,8 @@ Keep the extracted directory intact while linked. Don't pass this tarball to `om
 
 ## Check the installation
 
-1. In your **shell**, run `omp plugin list --json`. Look for `elivibe` at version `0.2.0` and check the source against the pin or local path you selected. Use `omp skill list --json` from the project root to check skill discovery. If you also have a standalone copy, move only that copy outside discovery to keep it for rollback.
-2. In a **new interactive OMP session** in that profile and project, enter `/elivibe status` and `/elivibe help`. For the v0.2.0 candidate, expect `manual` mode and usage for `more` and focused questions. `/elivibe status` checks adapter settings, not the installed version; these candidate expectations do not apply to a standalone install or the published v0.1.0 adapter.
+1. In your **shell**, run `omp plugin list --json`. Look for `elivibe` at version `1.0.0` and check the source against the pin or local path you selected. Use `omp skill list --json` from the project root to check skill discovery. If you also have a standalone copy, move only that copy outside discovery to keep it for rollback.
+2. In a **new interactive OMP session** in that profile and project, enter `/elivibe status` and `/elivibe help`. With default settings, expect `manual` mode and usage for `more` and focused questions. `/elivibe status` checks adapter settings, not the installed version; these candidate expectations do not apply to a standalone install or the published v0.1.0 adapter.
 
 A profile is not a sandbox. Use the [native smoke procedure](development.md#native-omp-smoke) for contributor checks.
 
@@ -63,7 +63,7 @@ In an idle interactive OMP session with a configured model, paste this as a norm
 Return a short technical handoff for a fictional API that stages an inventory batch and activates it in one database transaction. State what that guarantees and one failure case still untested. Don't use tools, edit files, or claim you ran checks.
 ```
 
-- **v0.2.0 native candidate:** enter `/elivibe` on its own.
+- **v1.0.0 native candidate:** enter `/elivibe` on its own.
 - **v0.1.0 standalone skill:** enter `/skill:elivibe Why does the transaction matter?`. This also works for the candidate's standalone skill. `/skill:elivibe` needs OMP's skill commands enabled.
 
 If OMP is still working and the command doesn't start a response, wait until the session is idle and try again. The explanation should be distinct from the unchanged handoff. The report is the source account, not independent verification. These are ordinary OMP turns; use only material you can share through your active OMP setup.
@@ -74,7 +74,9 @@ In the candidate, follow up with `/elivibe more` or `/elivibe What wouldn't that
 
 1. In the profile that owns the existing link, use `omp plugin list --json` to record the current registration and keep the absolute path to the verified v0.1.0 extracted `elivibe-omp` directory. Do not overwrite it.
 2. Close the old session. In the same profile, unregister the old link with `omp plugin uninstall elivibe` before installing from your [chosen candidate source](#install-the-omp-candidate). Don't use `--force` to move away from a link to a locally edited path. This leaves the old files available for rollback. Open a fresh session to check the new source, version and commands.
-3. Use `/elivibe status` and set the mode/depth you want. `depth adaptive` still works as `depth auto`. `/elivibe model`, `/elivibe judge`, `/elivibe consent`, and `/elivibe judge-consent` now show a migration notice instead of setting anything. The candidate does not use old route grants, an independent model, or a separate judge. Select the ordinary model through OMP itself. Manual explanations now use the ordinary conversation and can include more context than the source report alone.
+3. Use `/elivibe status` and set the mode/depth you want. `depth adaptive` still works as `depth auto`. `/elivibe model`, `/elivibe judge`, `/elivibe consent`, and `/elivibe judge-consent` now show a migration notice instead of setting anything. Old route grants don't carry over; there is no independent model or separate judge. Select the ordinary model through OMP itself. Manual and Light no longer isolate the report; the ordinary conversation can include more context. Check the [new disclosure boundary](privacy.md) before using the candidate.
+
+A resumed branch keeps its saved mode and depth. In particular, a saved **Light** setting now asks the ordinary model to teach during a coding task, even without an old route grant. For explanations only on request, select `/elivibe manual` before the next task. A new branch without saved preferences defaults to Manual.
 
 ## Update, roll back, or uninstall
 

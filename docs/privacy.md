@@ -1,6 +1,6 @@
 # What reaches the model?
 
-**The 0.2.0 candidate uses your ordinary OMP conversation, not a report-only request.** If that conversation is not suitable for the active host model or your organization's policy, do not invoke eliVibe on it. The [published v0.1.0](https://github.com/taibenvenuti/elivibe/blob/v0.1.0/docs/privacy.md) has a different boundary.
+**The v1.0.0 candidate uses your ordinary OMP conversation, not a report-only request.** This breaks the disclosure contract for Manual and Light in the [published v0.1.0](https://github.com/taibenvenuti/elivibe/blob/v0.1.0/docs/privacy.md). If the conversation is not suitable for the active host model or your organization's policy, do not invoke eliVibe on it.
 
 | Action | Disclosure and effect |
 |---|---|

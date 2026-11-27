@@ -1,6 +1,6 @@
 # Product QA
 
-Published [v0.1.0](https://github.com/taibenvenuti/elivibe/releases/tag/v0.1.0) has historical archive and synthetic native evidence. It is not evidence for the unreleased v0.2.0 candidate. The engineering checklist below describes what to check; the development walkthrough records one observation, not an acceptance result. See [status](status.md) for current evidence. Synthetic checks and constructed comparisons do not measure comprehension, improvement in safety, or live-provider behavior.
+Published [v0.1.0](https://github.com/taibenvenuti/elivibe/releases/tag/v0.1.0) has historical archive and synthetic native evidence. It is not evidence for the unreleased v1.0.0 candidate. The engineering checklist below describes what to check; the 0.2.0 development walkthrough records observations for its own revisions, not a v1.0.0 acceptance result. See [status](status.md) for current evidence. Synthetic checks and constructed comparisons do not measure comprehension, improvement in safety, or live-provider behavior.
 
 ## Engineering checks
 

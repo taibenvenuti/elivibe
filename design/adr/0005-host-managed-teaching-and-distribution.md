@@ -1,6 +1,6 @@
 # 0005 — Teach in the working conversation; install one product package
 
-**Decision for the next candidate.** Retain [0004](0004-conceptual-explanation-and-native-integration.md)'s teaching objective and evidence discipline. Supersede its isolated Manual and Light transports, route grants, and discovery assumptions. This decision is not a new claim about the [published v0.1.0](https://github.com/taibenvenuti/elivibe/releases/tag/v0.1.0).
+**Decision for the v1.0.0 candidate.** Retain [0004](0004-conceptual-explanation-and-native-integration.md)'s teaching objective and evidence discipline. Supersede its isolated Manual and Light transports, route grants, and discovery assumptions. This decision is not a new claim about the [published v0.1.0](https://github.com/taibenvenuti/elivibe/releases/tag/v0.1.0).
 
 ## One conversation, two kinds of text
 
@@ -16,4 +16,6 @@ OMP 19.2.1's [extension API](https://github.com/can1357/oh-my-pi/blob/v19.2.1/do
 
 Use the same `elivibe` root product identity and regular `skills/elivibe/SKILL.md` for a Git ref, npm package and release plugin archive. Publish only allowlisted runtime and public metadata; no consumer build step, install scripts, Python toolchain or symlink contract. Retain a standalone ZIP with the same skill. OMP is the only native integration; package-manager metadata is not evidence for Pi or Claude support.
 
-`v0.1.0` is already public. Never move its tag, replace its assets or use the same version for different bytes. Prepare 0.2.0 for owner review as a feature release; document retired experimental commands and the change in disclosure boundary. Keep [distribution gates](../../docs/status.md) separate: building a tarball doesn't put it on npm; an authenticated preview doesn't publish a release. Reconsider another host when its packaging, activation, privacy and removal can actually be exercised.
+`v0.1.0` is already public. Never move its tag, replace its assets or use the same version for different bytes. The provisional 0.2.0 feature-release decision was revised: the documented report-only routes and explicit model, judge and grant controls are removed, and the new disclosure boundary is intentionally incompatible. Under the unchanged release policy, `feat(omp)!: explain handoffs in the host conversation` is a breaking change and selects 1.0.0. Earlier 0.2.0 development trials remain evidence only for their recorded commits and artifacts.
+
+Keep [distribution gates](../../docs/status.md) separate: building a tarball doesn't put it on npm; an authenticated preview doesn't publish a release. Reconsider another host when its packaging, activation, privacy and removal can actually be exercised.

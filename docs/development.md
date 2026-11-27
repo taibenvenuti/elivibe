@@ -19,10 +19,25 @@ Use the [official OMP 19.2.1 Linux x64 binary](https://github.com/can1357/oh-my-
 ```sh
 python3.14 dev/omp_smoke.py --omp "$(command -v omp)" \
   --archive "$assets/elivibe-omp-$version.tar.gz" --skill-archive "$assets/elivibe-$version.zip" \
-  --npm-archive "$registry/elivibe-$version.tgz"
+  --npm-archive "$npm_tarball"
 ```
 
+### What survived the removal of the side client
+
+The v0.1.0 Node suite included provider selection, isolated role/payload validation, Jev transport and proxy handling, per-route grants, judgment replies and background request cleanup. Those implementations **no longer run**. Recreating their mocks would not protect the ordinary host path. Assess the replacement by responsibility, not by the number of test cases:
+
+| Guarantee | Current check |
+|---|---|
+| Exact controls, completion, optional settings, opt-outs and independent depth | [`command.test.ts`](../tests/plugin/command.test.ts) and [`host.test.ts`](../tests/plugin/host.test.ts); controls and missing reports do not dispatch a model request. |
+| Original account retained; ordinary host policy; explanation and focus attributed correctly | Host replay tests and [native smoke](../dev/omp_smoke.py) inspect roles, source text, top-level teaching policy, and the actual shown answer on the next request. |
+| Intentional repeats versus automatic duplicates | Host tests exercise `more`, new ordinary answers, filtered markers and in-turn Light/Full guidance. The native trace counts requests rather than relying on a mocked dispatch. |
+| Turn cleanup, branch, compaction and model changes | Host lifecycle tests cover ambiguous, rewritten and missing source positions, busy admission, cancellation, restoration and selection of the current model. |
+| Preference migration and environmental isolation | Host tests load old preference entries without restoring grants. Generic command/host tests don't need a provider or ambient proxy configuration; the native fixture owns its environment and private loopback endpoint. |
+| Discovery and upgrade/removal | Native OMP inspects the extension and explicit-only skill independently, and checks registry install, version changes, removal and the unrelated plugin registration. An actual GitHub ref install is a separate check. |
+
 Keep developer scripts in `dev/`, not root `tools/`: OMP discovers scripts in an installed plugin's `tools/` as custom tools, including when installed from a Git checkout.
+
+`dev/omp_smoke.py --help` also lists optional `--ponytail` and `--context-mode` paths for testing coexistence with those extensions, when already available. Neither is required for eliVibe or the standard smoke.
 
 The native sandbox checks its own non-root identity, dropped capabilities, distinct loopback-only network namespace and lack of an external route. Hosted mode additionally requires the expected enforced AppArmor stack. The [runner preflight](../.github/native-namespace.sh) is for disposable hosted Ubuntu runners only. Do not run it on a workstation or relax global policy to make a smoke pass. Synthetic loopback responses make request payloads inspectable without exposing a developer's normal profile or credentials. They do not establish provider support, reader outcomes or live quality.
 
