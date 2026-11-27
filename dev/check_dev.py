@@ -25,6 +25,7 @@ DOCS = (
     "SECURITY.md",
     "CODE_OF_CONDUCT.md",
     ".github/PULL_REQUEST_TEMPLATE.md",
+    "skills/README.md",
     "skills/elivibe/SKILL.md",
     "design/adr/0004-conceptual-explanation-and-native-integration.md",
     "design/adr/0005-host-managed-teaching-and-distribution.md",

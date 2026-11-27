@@ -20,14 +20,18 @@ SOURCES = (
     "skills/elivibe/SKILL.md",
     "package.json",
     "LICENSE",
+    "README.md",
 )
 CODEX_SKILL = "skills/elivibe/agents/openai.yaml"
 CODEX_PLUGIN = "skills/.codex-plugin/plugin.json"
 CODEX_CATALOG = ".agents/plugins/marketplace.json"
 CODEX_LICENSE = "skills/LICENSE"
-CODEX_ICON = "skills/icon.svg"
+PLUGIN_ICON = "skills/icon.png"
+CLAUDE_CATALOG = ".claude-plugin/marketplace.json"
+CLAUDE_PLUGIN = "skills/.claude-plugin/plugin.json"
+CLAUDE_README = "skills/README.md"
 PORTABLE_CODEX = "elivibe/agents/openai.yaml"
-PORTABLE_FILES = ["elivibe/SKILL.md", PORTABLE_CODEX, "LICENSE"]
+PORTABLE_FILES = ["elivibe/SKILL.md", PORTABLE_CODEX, "LICENSE", "README.md"]
 GIT_ENV = {**os.environ, "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull}
 
 
@@ -67,7 +71,10 @@ def source(tmp_path):
         CODEX_PLUGIN,
         CODEX_CATALOG,
         CODEX_LICENSE,
-        CODEX_ICON,
+        PLUGIN_ICON,
+        CLAUDE_CATALOG,
+        CLAUDE_PLUGIN,
+        CLAUDE_README,
     ):
         path = root / relative
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -79,6 +86,7 @@ def test_package_round_trip(source, tmp_path):
     root, sha = source
     (root / SOURCES[0]).write_bytes(b"unreviewed worktree edit")
     (root / "LICENSE").write_bytes(b"unreviewed license edit")
+    (root / "README.md").write_bytes(b"unreviewed readme edit")
     (root / "package.json").write_bytes(b"unreviewed manifest edit")
     (root / CODEX_SKILL).write_bytes(b"unreviewed policy edit")
     checked = tmp_path / "checked"
@@ -121,6 +129,7 @@ def test_package_round_trip(source, tmp_path):
         assert archive.read(PORTABLE_CODEX) == (ROOT / CODEX_SKILL).read_bytes()
         assert all(not member.is_dir() for member in archive.infolist())
         assert archive.read("LICENSE") == (ROOT / "LICENSE").read_bytes()
+        assert archive.read("README.md") == (ROOT / "README.md").read_bytes()
         archive.extractall(install)
     with tarfile.open(checked / native) as archive:
         assert archive.getnames() == [f"elivibe-omp/{path}" for path in SOURCES]
@@ -146,7 +155,6 @@ def test_package_version_and_tag_require_exact_commit(source):
 
 def test_offline_npm_pack_agrees_with_checkout_and_release(source, tmp_path):
     root, _ = source
-    (root / "README.md").write_text("# eliVibe\n")
     (root / "NOTICE").write_text("Optional notice\n")
     (root / "excluded.txt").write_text("not a runtime file\n")
     files = package.artifacts(root, VERSION, commit(root))
@@ -177,7 +185,7 @@ def test_offline_npm_pack_agrees_with_checkout_and_release(source, tmp_path):
         ) as native,
     ):
         assert set(npm.getnames()) == {
-            f"package/{path}" for path in (*SOURCES, "NOTICE", "README.md")
+            f"package/{path}" for path in (*SOURCES, "NOTICE")
         }
         assert all(member.isfile() for member in npm.getmembers())
         for path in (*SOURCES, "NOTICE"):
@@ -251,8 +259,8 @@ def test_committed_codex_policy_cannot_enable_implicit_invocation(source, conten
         (CODEX_PLUGIN, VERSION.encode(), b"9.9.9", "invalid Codex plugin manifest"),
         (
             CODEX_PLUGIN,
-            b"./icon.svg",
-            b"../icon.svg",
+            b"./icon.png",
+            b"../icon.png",
             "invalid Codex plugin directory metadata",
         ),
         (
@@ -263,27 +271,37 @@ def test_committed_codex_policy_cannot_enable_implicit_invocation(source, conten
         ),
         (CODEX_CATALOG, b"./skills", b"./", "invalid Codex marketplace catalog"),
         (CODEX_LICENSE, b"MIT License", b"Changed", "Codex license differs"),
-        (
-            CODEX_ICON,
-            b"</svg>",
-            b"<script>void 0</script></svg>",
-            "Codex plugin icon must use only static SVG shapes",
-        ),
-        (
-            CODEX_ICON,
-            b"</svg>",
-            b'<path d="M0 0" fill="url(https://example.invalid/paint.svg)"/></svg>',
-            "Codex plugin icon must use only static SVG shapes",
-        ),
+        (PLUGIN_ICON, b"\x89PNG", b"<svg", "plugin icon must be a 64x64 PNG"),
+        (CLAUDE_PLUGIN, b"./elivibe", b"..", "invalid Claude plugin manifest"),
+        (CLAUDE_PLUGIN, VERSION.encode(), b"9.9.9", "invalid Claude plugin manifest"),
+        (CLAUDE_CATALOG, b"./skills", b"./", "invalid Claude marketplace catalog"),
     ],
 )
-def test_committed_codex_metadata_rejects_drift(
+def test_committed_host_metadata_rejects_drift(
     source, relative, old, replacement, error
 ):
     root, _ = source
     path = root / relative
     path.write_bytes(path.read_bytes().replace(old, replacement))
     with pytest.raises(ValueError, match=error):
+        package.artifacts(root, VERSION, commit(root))
+
+
+def test_committed_compatibility_catalog_cannot_add_omp_root_manifest(source):
+    root, sha = source
+    (root / ".claude-plugin/plugin.json").write_text("{}")
+    package.validate_checkout_metadata(root, VERSION)
+    assert package.artifacts(root, VERSION, sha)
+    with pytest.raises(ValueError, match="unexpected marketplace tree"):
+        package.artifacts(root, VERSION, commit(root))
+
+
+def test_committed_claude_readme_must_meet_directory_minimum(source):
+    root, _ = source
+    (root / CLAUDE_README).write_text("Too short.")
+    with pytest.raises(
+        ValueError, match="Claude plugin README must have at least 40 words"
+    ):
         package.artifacts(root, VERSION, commit(root))
 
 
@@ -339,7 +357,8 @@ def test_package_rejects_invalid_versions(source, version):
         "LICENSE",
         CODEX_SKILL,
         CODEX_PLUGIN,
-        CODEX_ICON,
+        PLUGIN_ICON,
+        CLAUDE_PLUGIN,
     ],
 )
 def test_package_rejects_committed_symlinks(source, relative):

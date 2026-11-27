@@ -623,16 +623,21 @@ def unpack(spec, root):
         archive.extractall(root, filter="data")
 
 
-def payload(root, *, npm=False):
+def payload(root):
     files = {}
     for path in root.rglob("*"):
         assert not path.is_symlink(), path
         if not path.is_dir():
             assert path.is_file(), path
             files[path.relative_to(root)] = path.read_bytes()
-    expected = {Path("package.json"), Path("LICENSE"), ADAPTER, CORE, SKILL}
-    if npm:
-        expected.add(Path("README.md"))
+    expected = {
+        Path("package.json"),
+        Path("LICENSE"),
+        Path("README.md"),
+        ADAPTER,
+        CORE,
+        SKILL,
+    }
     assert files.keys() in (expected, expected | {Path("NOTICE")}), root
     manifest = json.loads(files[Path("package.json")])
     assert manifest["name"] == "elivibe" and manifest["license"] == "MIT"
@@ -890,15 +895,13 @@ def exercise(sink, peers, *, hosted, netns):
     linked = TRIAL / "native/elivibe-omp"
     npm = TRIAL / "npm/package"
     _, native_files = payload(linked)
-    npm_manifest, npm_files = payload(npm, npm=True)
-    assert native_files == {
-        name: data for name, data in npm_files.items() if name != Path("README.md")
-    }
+    npm_manifest, npm_files = payload(npm)
+    assert native_files == npm_files
     native_skill = native_files[SKILL]
     portable_skill = "elivibe/SKILL.md"
     portable_codex = "elivibe/agents/openai.yaml"
     with ZipFile("/inputs/standalone.zip") as archive:
-        expected = [portable_skill, portable_codex, "LICENSE"]
+        expected = [portable_skill, portable_codex, "LICENSE", "README.md"]
         if Path("NOTICE") in native_files:
             expected.append("NOTICE")
             assert archive.read("NOTICE") == native_files[Path("NOTICE")]
@@ -906,6 +909,7 @@ def exercise(sink, peers, *, hosted, netns):
         assert archive.read(portable_skill) == native_skill
         assert archive.read(portable_codex) == CODEX_POLICY
         assert archive.read("LICENSE") == native_files[Path("LICENSE")]
+        assert archive.read("README.md") == native_files[Path("README.md")]
     _, frontmatter, body = native_skill.decode().split("---", 2)
     description = next(
         line.removeprefix("description: ")
@@ -919,7 +923,7 @@ def exercise(sink, peers, *, hosted, netns):
 
     def assert_install(number):
         root = assert_registration(number)
-        manifest, files = payload(root, npm=True)
+        manifest, files = payload(root)
         if number == version:
             assert files == npm_files
         else:

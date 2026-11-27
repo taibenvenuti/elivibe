@@ -19,8 +19,11 @@ def skill(tmp_path):
     policy.write_bytes(b"policy:\n  allow_implicit_invocation: false\n")
     (tmp_path / "skills/.codex-plugin").mkdir()
     (tmp_path / "skills/.codex-plugin/plugin.json").write_text("{}")
+    (tmp_path / "skills/.claude-plugin").mkdir()
+    (tmp_path / "skills/.claude-plugin/plugin.json").write_text("{}")
     (tmp_path / "skills/LICENSE").touch()
-    (tmp_path / "skills/icon.svg").touch()
+    (tmp_path / "skills/README.md").touch()
+    (tmp_path / "skills/icon.png").touch()
     return path
 
 

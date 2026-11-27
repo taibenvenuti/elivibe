@@ -17,7 +17,7 @@
     "websiteURL": "https://github.com/taibenvenuti/elivibe",
     "supportURL": "https://github.com/taibenvenuti/elivibe/issues",
     "privacyPolicyURL": "https://github.com/taibenvenuti/elivibe/blob/main/docs/privacy.md",
-    "composerIcon": "./icon.svg",
-    "logo": "./icon.svg"
+    "composerIcon": "./icon.png",
+    "logo": "./icon.png"
   }
 }
