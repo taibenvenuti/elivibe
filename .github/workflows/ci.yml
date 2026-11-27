@@ -19,6 +19,10 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+      - name: Use the exact PR head when its tree matches the tested merge
+        if: github.event_name == 'pull_request'
+        run: |
+          if test "$(git rev-parse HEAD^{tree})" = "$(git rev-parse HEAD^2^{tree})"; then git checkout --detach HEAD^2; fi
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: '3.14.4'
@@ -43,6 +47,11 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
+          fetch-depth: 2
+      - name: Use the exact PR head when its tree matches the tested merge
+        if: github.event_name == 'pull_request'
+        run: |
+          if test "$(git rev-parse HEAD^{tree})" = "$(git rev-parse HEAD^2^{tree})"; then git checkout --detach HEAD^2; fi
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: '3.14.4'
@@ -52,29 +61,8 @@ jobs:
             sudo apt-get update -q
             sudo apt-get install --yes --no-install-recommends bubblewrap
           fi
-      - name: Check unprivileged sandbox networking before package preparation
-        run: |
-          test "$(id -u)" -ne 0
-          uname -r
-          /usr/bin/bwrap --version
-          started=$(date --iso-8601=seconds)
-          probe=(--clearenv --cap-drop ALL --ro-bind /usr /usr --symlink usr/lib /lib --symlink usr/lib64 /lib64 -- /usr/bin/true)
-          if ! /usr/bin/bwrap --unshare-all --unshare-net "${probe[@]}"; then
-            cat /sys/module/apparmor/parameters/enabled || :
-            sysctl kernel.apparmor_restrict_unprivileged_userns user.max_user_namespaces user.max_net_namespaces || :
-            dpkg-query -W apparmor apparmor-profiles bubblewrap || :
-            sudo grep -E '^(bwrap|unpriv_bwrap) ' /sys/kernel/security/apparmor/profiles || :
-            for profile in /etc/apparmor.d/*bwrap* /usr/share/apparmor/extra-profiles/*bwrap*; do
-              if test -f "$profile"; then dpkg-query -S "$profile"; fi
-            done
-            for flags in --map-root-user '--map-root-user --net'; do
-              unshare $flags /usr/bin/true && echo "unshare $flags: passed" || echo "unshare $flags: failed"
-            done
-            /usr/bin/bwrap --unshare-user "${probe[@]}" && echo 'bwrap without isolated net: passed' || echo 'bwrap without isolated net: failed'
-            sudo journalctl -k --since "$started" --grep='apparmor=.*comm="(bwrap|unshare)"' --no-pager -o cat |
-              grep -oE '(apparmor|operation|profile|comm|capname)="[^"]+"' || :
-            exit 1
-          fi
+      - name: Verify unprivileged sandbox networking before package preparation
+        run: bash .github/native-namespace.sh
       - name: Verify the pinned OMP executable
         run: |
           curl -fsSL --proto '=https' --proto-redir '=https' --max-time 60 \

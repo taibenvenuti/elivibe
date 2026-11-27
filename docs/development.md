@@ -29,7 +29,7 @@ python3.14 tools/omp_smoke.py --omp /absolute/path/to/verified/omp \
 
 The separate **Native OMP smoke (Linux x64)** job builds and verifies both packages from its checkout SHA using reserved, untagged fixture versions (`0.0.0-rc.1` and `0.0.0-rc.2`). Local release acceptance still exercises the actual candidate version as shown above.
 
-If a hosted runner refuses bubblewrap isolation, the hosted gate fails. Do not relax namespace or AppArmor protections or substitute a mocked import. With separate approval, run the same smoke on the reviewed SHA in a disposable Linux x64 runner with the same OMP pin and verified network namespace isolation. Never run untrusted public PRs on a personal self-hosted runner.
+On the disposable Ubuntu 24.04 GitHub-hosted VM the native job probes Bubblewrap before package preparation. Only on a matching AppArmor `unprivileged_userns` denial of `net_admin` does it load Ubuntu's [opt-in Bubblewrap profile](https://bugs.launchpad.net/ubuntu/+source/apparmor/+bug/2064672). The job verifies the package and profile digests, adds only that profile without replacing existing policy, and checks the enforced child stack. Bubblewrap may use namespace capabilities for setup; its payload cannot. The job verifies private loopback, no external route and no payload capabilities before running OMP. Any other failure blocks the gate. Do not apply this CI accommodation to developer machines, relax global restrictions or substitute a mocked import.
 
 The smoke uses disposable profiles and synthetic loopback responses. It does not access your normal profile or establish live-provider compatibility, quality, latency or cost.
 
