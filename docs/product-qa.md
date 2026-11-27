@@ -18,13 +18,17 @@ Count OMP metadata discovery separately from model inference. For an explicit re
 
 ## Observed development walkthrough
 
-On local revision `d412c3ca89d90cc6748c3ca3c10fb5542b6f76c5`, an implementer used OMP 19.2.1 on WSL Linux x64 in an ordinary ACP host session with `openai-codex/gpt-6.2-astra`. The outbox task was synthetic; the following short excerpts are actual model output.
+At `b85ae4420cdb6a86ef99d45eab0be024c8a9f522`, an implementer used a fresh OMP 19.2.1 ACP session on WSL Linux x64 with the already authenticated `openai-codex/gpt-6.2-astra`. The outbox task was fictional. These are short excerpts of actual model output, not authored examples:
 
-**Handoff:** “A crash after acknowledgement but before the sent mark leaves the row eligible for retry. On restart, the publisher resends the event with the same ID.”
+**Handoff:** “A crash after broker acceptance but before the sent mark commits can cause duplicate publication.”
 
-**After bare `/elivibe`:** “The unchanged event ID makes two copies recognizable as the same logical event. It does not make a subscriber act only once. No fault-injection result shows that a duplicate occurred, and no subscriber design tells us what effect one would have.”
+**Bare `/elivibe`:** “The transaction keeps the order and its outbox row together; it does not make broker acceptance and the later sent mark atomic.”
 
-`/elivibe more` produced another assistant turn, but no excerpt was retained, so there is no evidence that it improved the depth. Three turns and zero tool calls were observed. This was not an independent reader review, an inspection of wire message roles, or a check of the final revision. No raw transcript is included.
+**`/elivibe more`:** “If the publisher stopped before sending, a retry is needed to publish `OrderPlaced`. If it stopped after the broker acknowledged durable acceptance but before the sent mark committed, the retry sends an event the broker already accepted. The restarted publisher sees the same database state in both cases.”
+
+The first explanation separated two transaction boundaries. The second explained *why* the publisher cannot decide from the unmarked row alone whether retrying will duplicate a send. Both were labeled supplementary interpretation, not newly verified evidence. All three turns completed on the same model; no tool call was observed. No raw transcript is retained. This is neither reader feedback nor transport inspection.
+
+An earlier trial at `d412c3ca89d90cc6748c3ca3c10fb5542b6f76c5` also produced a useful bare explanation, but the synthetic wire check caught a different transport downgrading an in-context developer message to a user message. That is why the final integration appends trusted policy to OMP's top-level prompt rather than inferring correct attribution from a good answer.
 
 ## Qualitative walkthrough
 

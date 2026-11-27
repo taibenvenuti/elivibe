@@ -326,7 +326,7 @@ test("hollow cancelled turns do not shift a retained source and the active model
   const original = h.answer();
   h.model = "replacement-model";
   await h.command();
-  assert.match(h.policy(), /selected source is assistant message 1 \\(count only assistant messages with visible text or tool calls/);
+  assert.match(h.policy(), /selected source is assistant message 1 \(count only assistant messages with visible text or tool calls/);
   assert.equal(h.requests.at(-1)?.model, "replacement-model");
   assert.equal(h.branch.find(entry => entry.id === original)?.message?.model, "host-model");
 });
