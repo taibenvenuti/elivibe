@@ -135,6 +135,7 @@ For normal use, choose a release tag. A moving preview branch can contain differ
 ### Claude Code plugin
 
 - **Update:** from the same project, run `claude plugin marketplace update elivibe-marketplace`, then `claude plugin update elivibe@elivibe-marketplace --scope local`. A pinned tag won't advance to another tag. To switch pins or roll back, remove the plugin and marketplace as below, then rerun the install commands with the desired named ref.
+- **Same-version preview:** if the GitHub branch moved but the CLI says “already at the latest version,” the refreshed marketplace and the installed plugin can be at different commits. After the marketplace update, run `claude plugin uninstall elivibe@elivibe-marketplace --scope local` and then `claude plugin install elivibe@elivibe-marketplace --scope local` in the same project. This refreshed the cached files on Claude Code 2.1.291 without removing the marketplace or unrelated skills. Start a fresh session; don't clear your global cache.
 - **Disable or re-enable:** run `claude plugin disable elivibe@elivibe-marketplace --scope local` or `claude plugin enable elivibe@elivibe-marketplace --scope local`.
 - **Remove:** run `claude plugin uninstall elivibe@elivibe-marketplace --scope local`, then `claude plugin marketplace remove elivibe-marketplace --scope local` if you no longer want the marketplace. Use the scope in which you installed it; the examples use `local`, not shared `project` or all-projects `user`. Start a fresh session after changing the install.
 
