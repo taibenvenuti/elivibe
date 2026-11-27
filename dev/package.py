@@ -18,10 +18,22 @@ STABLE = r"(?:0|[1-9][0-9]*)(?:\.(?:0|[1-9][0-9]*)){2}"
 VERSION = re.compile(rf"{STABLE}(?:-rc\.[1-9][0-9]*)?")
 COMMIT = re.compile(r"[0-9a-f]{40}(?:[0-9a-f]{24})?")
 SKILL = "skills/elivibe/SKILL.md"
+CODEX_SKILL = "skills/elivibe/agents/openai.yaml"
+CODEX_PLUGIN = "skills/.codex-plugin/plugin.json"
+CODEX_LICENSE = "skills/LICENSE"
+CODEX_CATALOG = ".agents/plugins/marketplace.json"
+CODEX_SOURCES = (CODEX_SKILL, CODEX_PLUGIN, CODEX_LICENSE, CODEX_CATALOG)
+CODEX_POLICY = b"policy:\n  allow_implicit_invocation: false\n"
 LICENSE_ID = "MIT"
 ENTRY = "adapters/omp/index.ts"
 RUNTIME = (ENTRY, "core/index.ts", SKILL)
-SOURCES = (*RUNTIME, "package.json", "LICENSE")
+NATIVE_SOURCES = (*RUNTIME, "package.json", "LICENSE")
+PORTABLE_SOURCES = {
+    SKILL: "elivibe/SKILL.md",
+    CODEX_SKILL: "elivibe/agents/openai.yaml",
+    "LICENSE": "LICENSE",
+    "NOTICE": "NOTICE",
+}
 # Keep the Git/linked root from registering extra resources or duplicate skills.
 OTHER_DISCOVERY_PATHS = (
     "tools",
@@ -32,10 +44,14 @@ OTHER_DISCOVERY_PATHS = (
     ".mcp.json",
     "mcp.json",
     "plugin.json",
+    "marketplace.json",
     ".omp-plugin",
+    ".codex-plugin",
     ".claude-plugin",
     "skill",
-    ".agents/skills/elivibe",
+    ".agents/skills",
+    ".claude/skills",
+    ".omp/skills",
 )
 NATIVE = "elivibe-omp"
 SUMS = "SHA256SUMS"
@@ -55,20 +71,80 @@ def validate_skill(data: bytes) -> None:
         raise ValueError("empty skill body")
 
 
+def validate_codex_skill(data: bytes) -> None:
+    if data != CODEX_POLICY:
+        raise ValueError("Codex skill must disable implicit invocation")
+
+
 def skill_digest(root: Path) -> str:
-    directory = root / "skills"
-    for child in ("elivibe", "SKILL.md"):
-        if not stat.S_ISDIR(directory.lstat().st_mode):
+    for directory, children in (
+        ("skills", {"elivibe", ".codex-plugin", "LICENSE"}),
+        ("skills/.codex-plugin", {"plugin.json"}),
+        ("skills/elivibe", {"SKILL.md", "agents"}),
+        ("skills/elivibe/agents", {"openai.yaml"}),
+    ):
+        path = root / directory
+        if not stat.S_ISDIR(path.lstat().st_mode):
             raise ValueError("invalid skill directory")
-        if {path.name for path in directory.iterdir()} != {child}:
+        if {child.name for child in path.iterdir()} != children:
             raise ValueError("unexpected skill tree")
-        directory /= child
-    mode = directory.lstat().st_mode
-    if not stat.S_ISREG(mode) or mode & 0o111:
-        raise ValueError("invalid skill file mode")
-    data = directory.read_bytes()
+    for name in (SKILL, CODEX_SKILL):
+        mode = (root / name).lstat().st_mode
+        if not stat.S_ISREG(mode) or mode & 0o111:
+            raise ValueError("invalid skill file mode")
+    data = (root / SKILL).read_bytes()
     validate_skill(data)
+    validate_codex_skill((root / CODEX_SKILL).read_bytes())
     return hashlib.sha256(data).hexdigest()
+
+
+def validate_codex(sources: dict[str, bytes], version: str) -> None:
+    validate_codex_skill(sources[CODEX_SKILL])
+    if sources[CODEX_LICENSE] != sources["LICENSE"]:
+        raise ValueError("Codex license differs from the root license")
+    plugin = json.loads(sources[CODEX_PLUGIN])
+    if not (
+        isinstance(plugin, dict)
+        and plugin.keys() == {"name", "version", "description", "author", "license", "skills"}
+        and plugin["name"] == "elivibe"
+        and plugin["version"] == version
+        and isinstance(plugin["description"], str)
+        and plugin["description"].strip()
+        and plugin["author"] == {"name": "Tai Benvenuti"}
+        and plugin["license"] == LICENSE_ID
+        and plugin["skills"] == "./elivibe"
+    ):
+        raise ValueError("invalid Codex plugin manifest")
+    if json.loads(sources[CODEX_CATALOG]) != {
+        "name": "elivibe",
+        "interface": {"displayName": "eliVibe"},
+        "plugins": [
+            {
+                "name": "elivibe",
+                "source": {"source": "local", "path": "./skills"},
+                "policy": {"installation": "AVAILABLE", "authentication": "ON_INSTALL"},
+                "category": "Productivity",
+            }
+        ],
+    }:
+        raise ValueError("invalid Codex marketplace catalog")
+
+
+def validate_checkout_metadata(root: Path, version: str) -> None:
+    skill_digest(root)
+    for directory in (".agents", ".agents/plugins"):
+        if not stat.S_ISDIR((root / directory).lstat().st_mode):
+            raise ValueError(f"invalid Codex manifest directory: {directory}")
+    if {child.name for child in (root / ".agents/plugins").iterdir()} != {"marketplace.json"}:
+        raise ValueError("unexpected Codex marketplace tree")
+    sources = {}
+    for name in (*CODEX_SOURCES, "LICENSE"):
+        path = root / name
+        mode = path.lstat().st_mode
+        if not stat.S_ISREG(mode) or mode & 0o111:
+            raise ValueError(f"not a regular non-executable source file: {name}")
+        sources[name] = path.read_bytes()
+    validate_codex(sources, version)
 
 
 def git(root: Path, *args: str) -> bytes:
@@ -100,6 +176,8 @@ def validate_manifest(manifest: object, version: str) -> None:
                 "dependencies",
                 "optionalDependencies",
                 "main",
+                "exports",
+                "pi",
                 "browser",
                 "bin",
                 "peerDependencies",
@@ -141,8 +219,9 @@ def release_sources(root: Path, version: str, commit: str) -> dict[str, bytes]:
         "-z",
         commit,
         "--",
-        *SOURCES,
+        *NATIVE_SOURCES,
         "skills",
+        ".agents/plugins",
         "NOTICE",
         *OTHER_DISCOVERY_PATHS,
     )
@@ -154,10 +233,18 @@ def release_sources(root: Path, version: str, commit: str) -> dict[str, bytes]:
         name = path.encode()
         if any(entry == name or entry.startswith(name + b"/") for entry in entries):
             raise ValueError(f"unexpected OMP discovery path: {path}")
-    if {name for name in entries if name.startswith(b"skills/")} != {SKILL.encode()}:
+    if {name for name in entries if name.startswith(b"skills/")} != {
+        name.encode() for name in (SKILL, CODEX_SKILL, CODEX_PLUGIN, CODEX_LICENSE)
+    }:
         raise ValueError("unexpected skill tree")
+    if {
+        name
+        for name in entries
+        if name == b".agents/plugins" or name.startswith(b".agents/plugins/")
+    } != {CODEX_CATALOG.encode()}:
+        raise ValueError("unexpected Codex marketplace tree")
     sources = {}
-    required = SOURCES
+    required = (*NATIVE_SOURCES, *CODEX_SOURCES)
     if b"NOTICE" in entries:
         required = (*required, "NOTICE")
     for name in required:
@@ -168,6 +255,7 @@ def release_sources(root: Path, version: str, commit: str) -> dict[str, bytes]:
         if name in notice_names and not sources[name].strip():
             raise ValueError(f"empty distribution notice: {name}")
     validate_skill(sources[SKILL])
+    validate_codex(sources, version)
     validate_manifest(json.loads(sources["package.json"]), version)
     return sources
 
@@ -185,8 +273,7 @@ def artifacts(
     sources = release_sources(root, version, commit)
     portable = io.BytesIO()
     with zipfile.ZipFile(portable, "w") as archive:
-        for name in ("elivibe/SKILL.md", "LICENSE", "NOTICE"):
-            source = SKILL if name == "elivibe/SKILL.md" else name
+        for source, name in PORTABLE_SOURCES.items():
             if source in sources:
                 member = zipfile.ZipInfo(name)
                 member.create_system = 3
@@ -199,10 +286,11 @@ def artifacts(
             fileobj=compressed, mode="w", format=tarfile.USTAR_FORMAT
         ) as archive,
     ):
-        for name, data in sources.items():
-            member = tarfile.TarInfo(f"{NATIVE}/{name}")
-            member.size = len(data)
-            archive.addfile(member, io.BytesIO(data))
+        for name in (*NATIVE_SOURCES, "NOTICE"):
+            if name in sources:
+                member = tarfile.TarInfo(f"{NATIVE}/{name}")
+                member.size = len(sources[name])
+                archive.addfile(member, io.BytesIO(sources[name]))
     files = {
         f"elivibe-{version}.zip": portable.getvalue(),
         f"{NATIVE}-{version}.tar.gz": native.getvalue(),
@@ -259,6 +347,7 @@ def inspect_install(files: dict[str, bytes], version: str) -> None:
         ) as archive:
             archive.extractall(root, filter="data")
         skill = root / "elivibe/SKILL.md"
+        validate_codex_skill((root / PORTABLE_SOURCES[CODEX_SKILL]).read_bytes())
         plugin = root / NATIVE
         discovered = plugin / SKILL
         manifest = json.loads((plugin / "package.json").read_bytes())

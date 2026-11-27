@@ -21,6 +21,12 @@ SOURCES = (
     "package.json",
     "LICENSE",
 )
+CODEX_SKILL = "skills/elivibe/agents/openai.yaml"
+CODEX_PLUGIN = "skills/.codex-plugin/plugin.json"
+CODEX_CATALOG = ".agents/plugins/marketplace.json"
+CODEX_LICENSE = "skills/LICENSE"
+PORTABLE_CODEX = "elivibe/agents/openai.yaml"
+PORTABLE_FILES = ["elivibe/SKILL.md", PORTABLE_CODEX, "LICENSE"]
 GIT_ENV = {**os.environ, "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull}
 
 
@@ -54,7 +60,7 @@ def source(tmp_path):
     root = tmp_path / "source"
     root.mkdir()
     git(root, "init", "-q", "--initial-branch=main", "--template=")
-    for relative in SOURCES:
+    for relative in (*SOURCES, CODEX_SKILL, CODEX_PLUGIN, CODEX_CATALOG, CODEX_LICENSE):
         path = root / relative
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes((ROOT / relative).read_bytes())
@@ -66,6 +72,7 @@ def test_package_round_trip(source, tmp_path):
     (root / SOURCES[0]).write_bytes(b"unreviewed worktree edit")
     (root / "LICENSE").write_bytes(b"unreviewed license edit")
     (root / "package.json").write_bytes(b"unreviewed manifest edit")
+    (root / CODEX_SKILL).write_bytes(b"unreviewed policy edit")
     checked = tmp_path / "checked"
     checked.mkdir()
     command = [
@@ -102,7 +109,9 @@ def test_package_round_trip(source, tmp_path):
     install = tmp_path / "install"
     install.mkdir()
     with zipfile.ZipFile(checked / portable) as archive:
-        assert archive.namelist() == ["elivibe/SKILL.md", "LICENSE"]
+        assert archive.namelist() == PORTABLE_FILES
+        assert archive.read(PORTABLE_CODEX) == (ROOT / CODEX_SKILL).read_bytes()
+        assert all(not member.is_dir() for member in archive.infolist())
         assert archive.read("LICENSE") == (ROOT / "LICENSE").read_bytes()
         archive.extractall(install)
     with tarfile.open(checked / native) as archive:
@@ -180,6 +189,7 @@ def test_offline_npm_pack_agrees_with_checkout_and_release(source, tmp_path):
         {"files": ["tests"]},
         {"main": "excluded.txt"},
         {"omp": {"extensions": []}},
+        {"pi": {"skills": ["./other"]}},
     ],
 )
 def test_invalid_committed_manifest_rejected(source, overrides):
@@ -191,11 +201,55 @@ def test_invalid_committed_manifest_rejected(source, overrides):
         package.artifacts(root, VERSION, commit(root))
 
 
-def test_unexpected_committed_omp_discovery_path_rejected(source):
+@pytest.mark.parametrize(
+    "relative",
+    [
+        "tools/example.ts",
+        "plugin.json",
+        ".codex-plugin/plugin.json",
+        "marketplace.json",
+        ".agents/skills/extra/SKILL.md",
+    ],
+)
+def test_unexpected_committed_omp_discovery_path_rejected(source, relative):
     root, _ = source
-    (root / "tools").mkdir()
-    (root / "tools/example.ts").write_text("export default {};\n")
-    with pytest.raises(ValueError, match="unexpected OMP discovery path: tools"):
+    path = root / relative
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("unexpected discovery surface\n")
+    with pytest.raises(ValueError, match="unexpected OMP discovery path"):
+        package.artifacts(root, VERSION, commit(root))
+
+
+@pytest.mark.parametrize(
+    "content",
+    [
+        b"policy:\n  allow_implicit_invocation: true\n",
+        b"policy:\n  allow_implicit_invocation: false\npolicy: {}\n",
+    ],
+)
+def test_committed_codex_policy_cannot_enable_implicit_invocation(source, content):
+    root, _ = source
+    (root / CODEX_SKILL).write_bytes(content)
+    with pytest.raises(ValueError, match="Codex skill must disable implicit invocation"):
+        package.artifacts(root, VERSION, commit(root))
+
+
+@pytest.mark.parametrize(
+    ("relative", "old", "replacement", "error"),
+    [
+        (CODEX_PLUGIN, b"./elivibe", b"..", "invalid Codex plugin manifest"),
+        (CODEX_PLUGIN, VERSION.encode(), b"9.9.9", "invalid Codex plugin manifest"),
+        (CODEX_CATALOG, b"./skills", b"./", "invalid Codex marketplace catalog"),
+        (CODEX_LICENSE, b"MIT License", b"Changed", "Codex license differs"),
+    ],
+)
+def test_committed_codex_metadata_rejects_drift(
+    source, relative, old, replacement, error
+):
+    root, _ = source
+    path = root / relative
+    path.write_bytes(path.read_bytes().replace(old, replacement))
+    with pytest.raises(ValueError, match=error):
         package.artifacts(root, VERSION, commit(root))
 
 
@@ -214,7 +268,7 @@ def test_optional_notice_bundled_outside_skill(source):
     (root / "NOTICE").write_bytes(b"synthetic notice")
     files = package.artifacts(root, VERSION, commit(root))
     with zipfile.ZipFile(io.BytesIO(files[f"elivibe-{VERSION}.zip"])) as archive:
-        assert archive.namelist() == ["elivibe/SKILL.md", "LICENSE", "NOTICE"]
+        assert archive.namelist() == [*PORTABLE_FILES, "NOTICE"]
         assert archive.read("NOTICE") == b"synthetic notice"
     with tarfile.open(
         fileobj=io.BytesIO(files[f"elivibe-omp-{VERSION}.tar.gz"])
@@ -243,7 +297,8 @@ def test_package_rejects_invalid_versions(source, version):
 
 
 @pytest.mark.parametrize(
-    "relative", [SOURCES[0], SOURCES[2], "package.json", "LICENSE"]
+    "relative",
+    [SOURCES[0], SOURCES[2], "package.json", "LICENSE", CODEX_SKILL, CODEX_PLUGIN],
 )
 def test_package_rejects_committed_symlinks(source, relative):
     root, _ = source

@@ -1,0 +1,9 @@
+# 0006 — One teaching skill; each host owns invocation
+
+**Decision.** eliVibe is a conceptual explanation skill for coding agents. A reader can ask why a technical handoff matters without commissioning a second investigation. Keep the original account in place, including what was not checked. The explanation teaches from the available conversation; it is not a verification or approval.
+
+Edit the methodology once, in [`skills/elivibe/SKILL.md`](../../skills/elivibe/SKILL.md). Distribute those bytes, not rewrites or prompts maintained per host. Manifests, catalogs and invocation policy are discovery metadata, not places to teach. Start with explicit native skill invocation in the current conversation. An ordinary question can deepen an explanation. Do not introduce another model client, key, tool grant, hook, forked agent or mandatory settings to do this.
+
+[ADR 0005](0005-host-managed-teaching-and-distribution.md) still governs the Oh My Pi integration. Its extension adds source binding, tool-call handling and optional persistent modes. Those are OMP capabilities, not obligations on Codex or Claude Code. In skill-only hosts the instruction not to run tools is guidance, not an execution barrier. Host context, permissions and account policy still apply.
+
+Accept a host by testing the installed files in a pinned real host: discover it once, invoke it explicitly against a handoff, ask a focused question, continue ordinary work, and remove it without disturbing other resources. Record package, platform, synthetic versus model evidence and exceptions in [compatibility](../../docs/compatibility.md). A standalone skill, a plugin installed from a repository, a registry release and an approved marketplace listing are separate claims. Do not implement another adapter merely to make rows in that table match.
