@@ -19,6 +19,10 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+      - name: Use the exact PR head when its tree matches the tested merge
+        if: github.event_name == 'pull_request'
+        run: |
+          if test "$(git rev-parse HEAD^{tree})" = "$(git rev-parse HEAD^2^{tree})"; then git checkout --detach HEAD^2; fi
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: '3.14.4'
@@ -43,6 +47,11 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
+          fetch-depth: 2
+      - name: Use the exact PR head when its tree matches the tested merge
+        if: github.event_name == 'pull_request'
+        run: |
+          if test "$(git rev-parse HEAD^{tree})" = "$(git rev-parse HEAD^2^{tree})"; then git checkout --detach HEAD^2; fi
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: '3.14.4'
@@ -52,6 +61,8 @@ jobs:
             sudo apt-get update -q
             sudo apt-get install --yes --no-install-recommends bubblewrap
           fi
+      - name: Verify unprivileged sandbox networking before package preparation
+        run: bash .github/native-namespace.sh
       - name: Verify the pinned OMP executable
         run: |
           curl -fsSL --proto '=https' --proto-redir '=https' --max-time 60 \
@@ -70,7 +81,7 @@ jobs:
           python tools/package.py verify --output-dir "$RUNNER_TEMP/candidate" --version "$candidate" --commit "$sha"
           python tools/package.py build --output-dir "$RUNNER_TEMP/update" --version "$update" --commit "$sha"
           python tools/package.py verify --output-dir "$RUNNER_TEMP/update" --version "$update" --commit "$sha"
-          python tools/omp_smoke.py --omp "$RUNNER_TEMP/omp" \
+          python tools/omp_smoke.py --hosted --omp "$RUNNER_TEMP/omp" \
             --skill-archive "$RUNNER_TEMP/candidate/elivibe-$candidate.zip" \
             --archive "$RUNNER_TEMP/candidate/elivibe-omp-$candidate.tar.gz" \
             --update-archive "$RUNNER_TEMP/update/elivibe-omp-$update.tar.gz"
