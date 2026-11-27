@@ -31,6 +31,8 @@ The separate **Native OMP smoke (Linux x64)** job builds and verifies both packa
 
 On the disposable Ubuntu 24.04 GitHub-hosted VM the native job probes Bubblewrap before package preparation. Only on a matching AppArmor `unprivileged_userns` denial of `net_admin` does it load Ubuntu's [opt-in Bubblewrap profile](https://bugs.launchpad.net/ubuntu/+source/apparmor/+bug/2064672). The job verifies the package and profile digests, adds only that profile without replacing existing policy, and checks the enforced child stack. Bubblewrap may use namespace capabilities for setup; its payload cannot. The job verifies private loopback, no external route and no payload capabilities before running OMP. Any other failure blocks the gate. Do not apply this CI accommodation to developer machines, relax global restrictions or substitute a mocked import.
 
+The preflight and the **actual smoke sandbox** both check isolation. The latter checks before the first OMP command: non-root identity, no effective/permitted/bounding capabilities, a distinct network namespace containing only `lo`, a successful TCP loopback connection, and an unreachable external route tested without sending a packet. Hosted CI must pass `--hosted` and both sandboxes must observe `bwrap//&unpriv_bwrap (enforce)`, even when no policy load was necessary. Local runs enforce the namespace and privilege checks without requiring Ubuntu's AppArmor stack.
+
 The smoke uses disposable profiles and synthetic loopback responses. It does not access your normal profile or establish live-provider compatibility, quality, latency or cost.
 
 ## Manual regression

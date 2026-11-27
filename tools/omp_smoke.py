@@ -1,12 +1,14 @@
 """Exercise candidate archives in real, network-isolated OMP with synthetic inference."""
 
 import argparse
+import errno
 import hashlib
 import json
 import os
 import queue
 import re
 import shutil
+import socket
 import subprocess
 import sys
 import tarfile
@@ -21,6 +23,7 @@ from zipfile import ZipFile
 OMP_VERSION = "19.2.1"
 # GitHub can1357/oh-my-pi v19.2.1, omp-linux-x64 release asset.
 OMP_SHA256 = "e8b937f9bf023baa147bdd300ad5421af0a6ef8b1f350c47a9a93d5fca94feca"
+HOSTED_LABEL = "bwrap//&unpriv_bwrap (enforce)"
 TRIAL = Path("/trial")
 WORK = TRIAL / "work"
 OMP = "/runtime/omp"
@@ -46,7 +49,135 @@ FULL_SECTION = "\n\n## eliVibe explanation\n\n"
 EDIT = re.compile(r"SMOKE_EDIT_([A-Z]+)")
 
 
+def process_evidence(proc, hosted):
+    try:
+        status = dict(
+            line.split(":", 1)
+            for line in (proc / "status").read_text().splitlines()
+            if ":" in line
+        )
+        netns = os.readlink(str(proc / "ns/net"))
+        label = (
+            (proc / "attr/current").read_text().removesuffix("\n") if hosted else None
+        )
+    except OSError as error:
+        raise SystemExit(
+            f"Cannot observe isolation state for {proc}: {error}"
+        ) from error
+
+    uids = status.get("Uid", "").split()
+    if len(uids) != 4 or any(not re.fullmatch(r"[1-9][0-9]*", uid) for uid in uids):
+        raise SystemExit(
+            f"{proc}: expected non-root real/effective/saved/fs UIDs; got {uids}"
+        )
+    caps = {key: status.get(key, "").strip() for key in ("CapEff", "CapPrm", "CapBnd")}
+    if not all(re.fullmatch(r"0+", value) for value in caps.values()):
+        raise SystemExit(
+            f"{proc}: expected zero effective/permitted/bounding capabilities; got {caps}"
+        )
+    if status.get("NoNewPrivs", "").strip() != "1":
+        raise SystemExit(
+            f"{proc}: expected NoNewPrivs=1; got {status.get('NoNewPrivs')!r}"
+        )
+    if not re.fullmatch(r"net:\[[0-9]+\]", netns):
+        raise SystemExit(f"{proc}: invalid network namespace token {netns!r}")
+    if hosted and label != HOSTED_LABEL:
+        raise SystemExit(f"{proc}: expected AppArmor {HOSTED_LABEL!r}; got {label!r}")
+
+    evidence = (
+        f"Uid real/effective/saved/fs={'/'.join(uids)}, "
+        f"{', '.join(f'{key}={value}' for key, value in caps.items())}, "
+        f"NoNewPrivs=1, netns={netns}, "
+        f"AppArmor={label if hosted else 'not checked (local)'}"
+    )
+    return netns, evidence
+
+
+def verify_namespace(hosted: bool, host_netns: str) -> str:
+    if not re.fullmatch(r"net:\[[0-9]+\]", host_netns):
+        raise SystemExit(f"Invalid host network namespace token {host_netns!r}")
+    netns, evidence = process_evidence(Path("/proc/self"), hosted)
+    if netns == host_netns:
+        raise SystemExit(
+            f"Network namespace is not isolated: {netns} is the host namespace"
+        )
+    try:
+        interfaces = [name for _, name in socket.if_nameindex()]
+        if interfaces != ["lo"]:
+            raise SystemExit(f"Expected only the loopback interface; got {interfaces}")
+        with (
+            socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener,
+            socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client,
+        ):
+            listener.settimeout(2)
+            client.settimeout(2)
+            listener.bind(("127.0.0.1", 0))
+            listener.listen(1)
+            client.connect(listener.getsockname())
+            connection, _ = listener.accept()
+            connection.close()
+        # UDP connect does a route lookup without sending a datagram.
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as probe:
+            error = probe.connect_ex(("192.0.2.1", 9))
+        if error != errno.ENETUNREACH:
+            raise SystemExit(
+                f"Expected ENETUNREACH for TEST-NET UDP route; got {error}"
+            )
+    except OSError as error:
+        raise SystemExit(f"Network namespace probe failed: {error}") from error
+    print(
+        f"Verified sandbox isolation: {evidence}, host netns={host_netns}, "
+        "interfaces=lo only, TCP loopback connected and accepted, "
+        "TEST-NET UDP connect=ENETUNREACH (no datagram sent)",
+        flush=True,
+    )
+    return netns
+
+
+def verify_omp_process(pid, hosted, expected_netns, command):
+    proc = Path("/proc") / str(pid)
+    try:
+        if not (proc / "exe").samefile(OMP):
+            raise SystemExit(f"{command} PID {pid} did not exec the pinned OMP binary")
+    except OSError as error:
+        raise SystemExit(
+            f"Cannot confirm OMP exec for {command} PID {pid}: {error}"
+        ) from error
+    netns, evidence = process_evidence(proc, hosted)
+    if netns != expected_netns:
+        raise SystemExit(
+            f"{command} PID {pid} network namespace changed: {netns} != {expected_netns}"
+        )
+    print(f"Verified post-exec {command} PID {pid}: {evidence}", flush=True)
+
+
+def verify_omp_cli(hosted, netns):
+    # The pinned --license output exceeds the pipe, so OMP stays live until we drain it.
+    pipe_size = 4096
+    with subprocess.Popen(
+        [OMP, "--license"],
+        cwd=WORK,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        pipesize=pipe_size,
+    ) as proc:
+        try:
+            verify_omp_process(proc.pid, hosted, netns, "OMP CLI (--license)")
+            stdout, stderr = proc.communicate(timeout=10)
+        except BaseException:
+            proc.kill()
+            raise
+    if proc.returncode or len(stdout) <= pipe_size:
+        raise SystemExit(
+            f"OMP CLI isolation probe failed: exit={proc.returncode}, "
+            f"stdout={len(stdout)} bytes, stderr={stderr[-2000:]!r}"
+        )
+
+
 def isolate(args):
+    if "GITHUB_ACTIONS" in os.environ and not args.hosted:
+        raise SystemExit("GitHub Actions requires --hosted for the OMP smoke.")
     bwrap = shutil.which("bwrap")
     omp = Path(args.omp).resolve()
     python_root = Path(sys.base_prefix).resolve()
@@ -172,6 +303,7 @@ def isolate(args):
             "-IB",
             "/inputs/smoke.py",
             "--isolated",
+            "hosted" if args.hosted else "local",
         ]
         subprocess.run(command, stdin=subprocess.DEVNULL, check=True, timeout=90)
 
@@ -505,36 +637,50 @@ def supplement(marker):
 
 
 class Rpc:
-    def __init__(self, extensions):
+    def __init__(self, extensions, *, hosted, netns):
         self.extensions = extensions
+        self.hosted = hosted
+        self.netns = netns
         self.frames = queue.Queue()
         self.transcript = []
         self.sequence = 0
 
     def __enter__(self):
         self.stderr = tempfile.TemporaryFile()
-        self.proc = subprocess.Popen(
-            [
-                OMP,
-                "--mode=rpc",
-                "--offline",
-                "--no-rules",
-                "--no-context-files",
-                "--no-title",
-                "--no-judge",
-                "--no-spotlight",
-                "--no-lsp",
-                "--approval-mode=yolo",
-                f"--model=loopback/{PRIMARY}",
-                *(f"--extension={path}" for path in self.extensions),
-            ],
-            cwd=WORK,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=self.stderr,
-        )
-        self.reader = threading.Thread(target=self.read, daemon=True)
-        self.reader.start()
+        proc = None
+        try:
+            proc = self.proc = subprocess.Popen(
+                [
+                    OMP,
+                    "--mode=rpc",
+                    "--offline",
+                    "--no-rules",
+                    "--no-context-files",
+                    "--no-title",
+                    "--no-judge",
+                    "--no-spotlight",
+                    "--no-lsp",
+                    "--approval-mode=yolo",
+                    f"--model=loopback/{PRIMARY}",
+                    *(f"--extension={path}" for path in self.extensions),
+                ],
+                cwd=WORK,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=self.stderr,
+            )
+            # Keep stdin open and send no RPC requests until the live OMP is checked.
+            verify_omp_process(proc.pid, self.hosted, self.netns, "OMP RPC")
+            self.reader = threading.Thread(target=self.read, daemon=True)
+            self.reader.start()
+        except BaseException:
+            try:
+                if proc is not None:
+                    with proc:
+                        proc.kill()
+            finally:
+                self.stderr.close()
+            raise
         return self
 
     def __exit__(self, typ, _value, _trace):
@@ -731,7 +877,7 @@ def extract(label):
     return path, manifest["version"], skill
 
 
-def exercise(sink, peers):
+def exercise(sink, peers, *, hosted, netns):
     expected_requests = 0
     agent = Path(os.environ["PI_CODING_AGENT_DIR"])
     profile_configs = (agent / "config.yml", agent / "models.yml")
@@ -1065,7 +1211,7 @@ def exercise(sink, peers):
         "lifecycle fixture must contain the same skill"
     )
     link(installed, version)
-    with Rpc(peers) as rpc:
+    with Rpc(peers, hosted=hosted, netns=netns) as rpc:
         discovery()
         if "ponytail" in rpc.commands():
             check("/ponytail full")
@@ -1248,7 +1394,7 @@ def exercise(sink, peers):
         check("/elivibe full")
         check_skill("/skill:elivibe Explain the fixture in this turn.", skill)
 
-    with Rpc(peers) as rpc:
+    with Rpc(peers, hosted=hosted, netns=netns) as rpc:
         proxy_model = "proxy-fixture/proxied"
         check(f"/elivibe model {proxy_model}")
         approve(proxy_model)
@@ -1264,7 +1410,7 @@ def exercise(sink, peers):
         approve(f"loopback/{PRIMARY}")
         check("/elivibe", followups=[(PRIMARY, "PROXY")])
 
-    with Rpc(peers) as rpc:
+    with Rpc(peers, hosted=hosted, netns=netns) as rpc:
         proxy_model = "proxy-fixture/proxied"
         check(f"/elivibe model {proxy_model}")
         approve(proxy_model)
@@ -1290,7 +1436,7 @@ def exercise(sink, peers):
         )
 
     configure(sink.server_port, secrets=True)
-    with Rpc(peers) as rpc:
+    with Rpc(peers, hosted=hosted, netns=netns) as rpc:
         _, calls = check(
             f"Remember this synthetic spelling fixture: {REDACTION_CANARY}", 1
         )
@@ -1307,12 +1453,12 @@ def exercise(sink, peers):
     configure(sink.server_port)
 
     link(updated, next_version)
-    with Rpc(peers) as rpc:
+    with Rpc(peers, hosted=hosted, netns=netns) as rpc:
         discovery()
         check_notice("/elivibe status", "eliVibe: manual", "not approved")
         check_skill("/skill:elivibe Explain the fixture after the update.", next_skill)
     link(installed, version)
-    with Rpc(peers) as rpc:
+    with Rpc(peers, hosted=hosted, netns=netns) as rpc:
         discovery()
         check_notice("/elivibe status", "eliVibe: manual", "not approved")
         check_skill("/skill:elivibe Explain the fixture after rollback.", skill)
@@ -1323,7 +1469,7 @@ def exercise(sink, peers):
         assert (
             packaged_skill.is_file() and (folder / "adapters/omp/index.ts").is_file()
         ), "uninstall removed a link target"
-    with Rpc(peers) as rpc:
+    with Rpc(peers, hosted=hosted, netns=netns) as rpc:
         commands = rpc.commands()
         assert (
             not {"elivibe", "skill:elivibe"} & commands.keys()
@@ -1341,7 +1487,7 @@ def exercise(sink, peers):
     assert standalone.read_bytes() == skill.read_bytes(), (
         "portable and bundled skill bytes differ"
     )
-    with Rpc(peers) as rpc:
+    with Rpc(peers, hosted=hosted, netns=netns) as rpc:
         commands = rpc.commands()
         assert (
             "elivibe" not in commands and commands["skill:elivibe"]["source"] == "skill"
@@ -1350,7 +1496,7 @@ def exercise(sink, peers):
             "/skill:elivibe Explain the fixture without the adapter.", standalone
         )
     standalone.unlink()
-    with Rpc(peers) as rpc:
+    with Rpc(peers, hosted=hosted, netns=netns) as rpc:
         assert not {"elivibe", "skill:elivibe"} & rpc.commands().keys()
     assert registration() == {"smoke-unrelated": unrelated_registration}
     assert len(sink.requests) == expected_requests, "unaccounted loopback requests"
@@ -1406,13 +1552,11 @@ def exercise(sink, peers):
         )
 
 
-def isolated():
+def isolated(hosted: bool):
     os.environ.pop(
         "LD_LIBRARY_PATH", None
     )  # Only the sandbox's Python startup needs its private runtime.
-    assert os.readlink("/proc/self/ns/net") != os.environ["SMOKE_HOST_NETNS"], (
-        "network not isolated"
-    )
+    netns = verify_namespace(hosted, os.environ.get("SMOKE_HOST_NETNS", ""))
     required = (
         "HOME",
         "PI_CODING_AGENT_DIR",
@@ -1427,6 +1571,7 @@ def isolated():
         "profile paths must start empty"
     )
     WORK.mkdir()
+    verify_omp_cli(hosted, netns)
     version_output = native("--version")
     assert re.search(
         rf"(?<![\d.]){re.escape(OMP_VERSION)}(?![\w.-])", version_output
@@ -1455,14 +1600,18 @@ def isolated():
                     )
                     if Path(path).is_file()
                 ],
+                hosted=hosted,
+                netns=netns,
             )
         finally:
             sink.shutdown()
 
 
 if __name__ == "__main__":
-    if sys.argv[1:] == ["--isolated"]:
-        isolated()
+    if len(sys.argv) == 3 and sys.argv[1] == "--verify-hosted-namespace":
+        verify_namespace(True, sys.argv[2])
+    elif sys.argv[1:] in (["--isolated", "hosted"], ["--isolated", "local"]):
+        isolated(sys.argv[2] == "hosted")
     else:
         parser = argparse.ArgumentParser(description=__doc__)
         parser.add_argument("--omp", default=shutil.which("omp") or "omp")
@@ -1483,4 +1632,7 @@ if __name__ == "__main__":
         )
         parser.add_argument("--ponytail", type=Path)
         parser.add_argument("--context-mode", type=Path)
+        parser.add_argument(
+            "--hosted", action="store_true", help="require the hosted AppArmor profile"
+        )
         isolate(parser.parse_args())

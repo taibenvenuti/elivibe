@@ -7,10 +7,14 @@ uname -r
 bwrap --version
 probe=(/usr/bin/bwrap --unshare-all --unshare-net --clearenv --cap-drop ALL --die-with-parent --new-session --ro-bind /usr /usr --symlink usr/lib /lib --symlink usr/lib64 /lib64 --proc /proc --)
 profiles=/sys/kernel/security/apparmor/profiles
-required_stack=0
+check_namespace() {
+  "${probe[@]}" /usr/bin/true || return
+  echo 'Namespace setup succeeded; checking the enforcing child stack and isolation.'
+  "${probe[@]}" /usr/bin/python3 -IB - --verify-hosted-namespace "$(readlink /proc/self/ns/net)" < tools/omp_smoke.py
+}
 started=$(date --iso-8601=seconds)
-if failure=$("${probe[@]}" /usr/bin/true 2>&1); then
-  echo 'Namespace preflight passed without a policy change.'
+if failure=$(check_namespace 2>&1); then
+  printf '%s\n' "$failure"
 else
   printf '%s\n' "$failure"
   [[ $failure == 'bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted' ]]
@@ -33,29 +37,5 @@ else
   echo "11d39094f044f0cda0febb3ad517b830301da6b2ce929664af09ee9e4dd264f9  $work/profile" | sha256sum --check
   sudo apparmor_parser --add --skip-cache "$work/profile"
   sudo grep -Fx -e 'bwrap (enforce)' -e 'unpriv_bwrap (enforce)' "$profiles"
-  "${probe[@]}" /usr/bin/true
-  required_stack=1
+  check_namespace
 fi
-"${probe[@]}" /usr/bin/python3 -I - "$(readlink /proc/self/ns/net)" "$required_stack" <<'PY'
-import errno, os, socket, sys
-from pathlib import Path
-
-label = Path('/proc/self/attr/current').read_text().strip()
-print('Sandbox AppArmor label:', label)
-if sys.argv[2] == '1':
-    assert label == 'bwrap//&unpriv_bwrap (enforce)', label
-assert os.getuid() != 0 and os.readlink('/proc/self/ns/net') != sys.argv[1]
-status = dict(line.split(':', 1) for line in Path('/proc/self/status').read_text().splitlines())
-assert all(int(status[key], 16) == 0 for key in ('CapEff', 'CapPrm', 'CapBnd'))
-assert [name for _, name in socket.if_nameindex()] == ['lo']
-with socket.socket() as server, socket.socket() as client:
-    server.bind(('127.0.0.1', 0))
-    server.listen(1)
-    client.connect(server.getsockname())
-    peer, _ = server.accept()
-    peer.close()
-with socket.socket(type=socket.SOCK_DGRAM) as sock:
-    # Route lookup only: UDP connect sends no packet, even on a broken runner.
-    assert sock.connect_ex(('192.0.2.1', 9)) == errno.ENETUNREACH
-print('Non-root; no capabilities; separate network namespace; only lo; TCP loopback works; external route unreachable.')
-PY

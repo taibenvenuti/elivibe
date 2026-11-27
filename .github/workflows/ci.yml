@@ -81,7 +81,7 @@ jobs:
           python tools/package.py verify --output-dir "$RUNNER_TEMP/candidate" --version "$candidate" --commit "$sha"
           python tools/package.py build --output-dir "$RUNNER_TEMP/update" --version "$update" --commit "$sha"
           python tools/package.py verify --output-dir "$RUNNER_TEMP/update" --version "$update" --commit "$sha"
-          python tools/omp_smoke.py --omp "$RUNNER_TEMP/omp" \
+          python tools/omp_smoke.py --hosted --omp "$RUNNER_TEMP/omp" \
             --skill-archive "$RUNNER_TEMP/candidate/elivibe-$candidate.zip" \
             --archive "$RUNNER_TEMP/candidate/elivibe-omp-$candidate.tar.gz" \
             --update-archive "$RUNNER_TEMP/update/elivibe-omp-$update.tar.gz"
