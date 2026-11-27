@@ -7,7 +7,7 @@
 - Light and Full guide the ordinary task response, with no separate judgment or explanation transport. Light teaches selectively when a meaningful gap warrants it. Full asks for teaching with meaningful technical handoffs. The selected depth applies in both; neither replaces the report.
 - Depth is `auto`, `brief`, or `detailed`; `adaptive` still means `auto`. The adapter's `model`, `judge`, `consent`, and `judge-consent` controls now show a migration notice. See [moving from a v0.1.0 linked install](docs/installation.md#move-from-a-v010-linked-install).
 - The same regular `skills/elivibe/SKILL.md` supplies explicit portable use and native teaching guidance. The standalone skill is not advertised for automatic model invocation.
-- Published the standalone ZIP, offline native OMP archive, and checksums. [Install from the verified GitHub tag or a release archive](docs/installation.md). This release is not published to npm.
+- Published the standalone ZIP, offline native OMP archive, and checksums. [Install from the verified GitHub tag, npm version, or a release archive](docs/installation.md).
 
 ## [v0.1.0](https://github.com/taibenvenuti/elivibe/releases/tag/v0.1.0)
 

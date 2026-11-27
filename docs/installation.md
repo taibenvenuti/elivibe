@@ -8,6 +8,8 @@
 omp plugin install github:taibenvenuti/elivibe#v1.0.0
 ```
 
+To install from [npm](https://www.npmjs.com/package/elivibe/v/1.0.0) instead, run `omp plugin install elivibe@1.0.0`.
+
 The plugin includes the skill; install only one copy. [Check the installation](#check-the-installation) and then [try your first explanation](#try-your-first-explanation). If replacing a v0.1.0 link, [migrate it first](#move-from-a-v010-linked-install). For the old release itself, use the [tagged v0.1.0 guide](https://github.com/taibenvenuti/elivibe/blob/v0.1.0/docs/installation.md).
 
 ### Standalone ZIP
@@ -33,7 +35,7 @@ Use OMP 19.2.1 in the intended profile. Pick **one** source. A GitHub tag, an np
 | GitHub release tag | `omp plugin install github:taibenvenuti/elivibe#v1.0.0` | Verified on OMP 19.2.1, Linux x64. The signed annotated tag peels to `caf8c089cad3a67d242d0eaa15329fca117a66a8`. |
 | Offline native archive | `omp plugin link /absolute/path/to/extracted/elivibe-omp` | [Download, verify and extract the release archive first](#verify-and-link-an-offline-archive). Verified on OMP 19.2.1, Linux x64. |
 | Local checkout | `omp plugin link "$PWD"` | Run from the root of a clean, reviewed checkout. OMP loads the files directly: keep the directory intact and unchanged while linked. |
-| npm | Not published. | Disposable registry checks are not public npm availability. |
+| [npm](https://www.npmjs.com/package/elivibe/v/1.0.0) | `omp plugin install elivibe@1.0.0` | Verified from the public registry on OMP 19.2.1, Linux x64. |
 
 Consumers need a working OMP installation. Its standalone binary embeds the package-manager runtime; no Python, uv, separate Node or Bun install. The tested `github:` shorthand fetched an HTTPS archive from GitHub. By default OMP registers plugins in the active user plugin directory, which may be shared by profiles. If you already have eliVibe linked, [migrate the existing install](#move-from-a-v010-linked-install) rather than forcing a replacement.
 

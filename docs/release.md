@@ -141,6 +141,8 @@ Use the public downloads to [try the standalone skill and link the native archiv
 
 ### First npm publication
 
+The [first npm version, `elivibe@1.0.0`](https://www.npmjs.com/package/elivibe/v/1.0.0), is public and [consumer-verified](status.md). The bootstrap steps below are retained for reference; do not rerun them for `elivibe`.
+
 This is a separate write. Use the public registry and exact `elivibe` identity from the reviewed tarball. The package and `/latest` returned 404 during review; that is not a reservation or proof of ownership. Recheck anonymously just before the decision. For the planned **first** npm release, both must still be 404; a 200, conflicting owner or unexpected status means stop and investigate. In the owner's authorized publisher environment, compare `npm whoami` to the approved account. Identity does not prove permission to claim an unpublished name. Never read or print npm credentials or change auth settings to force a release.
 
 ```bash

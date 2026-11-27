@@ -18,7 +18,7 @@ omp plugin install github:taibenvenuti/elivibe#v1.0.0
 
 Start a new OMP session, finish a coding task, then enter **`/elivibe`**. Enter **`/elivibe more`** if there's a part you'd like to understand better. No eliVibe setup, second model or key.
 
-See [installation](docs/installation.md) for the standalone skill, offline native archive, or a reviewed local checkout. [Distribution status](docs/status.md) records what was tested; v1.0.0 is not published to npm.
+The native plugin is also available as [elivibe@1.0.0 on npm](https://www.npmjs.com/package/elivibe/v/1.0.0): `omp plugin install elivibe@1.0.0`. See [installation](docs/installation.md) for the standalone skill, offline native archive, or a reviewed local checkout, and [distribution status](docs/status.md) for what was tested.
 
 The native plugin includes the skill. [Migrate an older linked install](docs/installation.md#move-from-a-v010-linked-install) rather than installing a second copy.
 
