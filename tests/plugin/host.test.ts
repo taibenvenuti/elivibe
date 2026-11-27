@@ -29,6 +29,7 @@ function host() {
   let complete: Completion;
   let select: string | undefined;
   let aborts = 0;
+  let failApplied = false;
   let send: (text: string) => void | Promise<void>;
   const ctx = {
     agent: { id: "Main", kind: "main" }, mode: "tui", hasUI: true,
@@ -76,7 +77,10 @@ function host() {
       command = registration.handler;
       complete = registration.getArgumentCompletions;
     },
-    appendEntry: (customType: string, data: unknown) => branch.push({ type: "custom", id: `entry-${++now}`, customType, data }),
+    appendEntry: (customType: string, data: unknown) => {
+      if (failApplied && customType === "elivibe-applied") throw new Error("Session write failed");
+      branch.push({ type: "custom", id: `entry-${++now}`, customType, data });
+    },
     sendUserMessage: async (prompt: string, options: unknown) => {
       submissions.push({ prompt, options });
       await send(prompt);
@@ -90,6 +94,7 @@ function host() {
     get branch() { return branch; }, get aborts() { return aborts; },
     set model(value: string) { model = value; }, set isIdle(value: boolean) { isIdle = value; },
     set pending(value: boolean) { pending = value; }, set select(value: string | undefined) { select = value; },
+    set failApplied(value: boolean) { failApplied = value; },
     set send(value: typeof send) { send = value; },
     switchBranch(value: Entry[], event = "session_tree") {
       branch = value;
@@ -174,6 +179,24 @@ test("More keeps the source through repeated explanations, follow-up, and branch
   h.switchBranch(treated);
   await h.command("more");
   assert.match(h.policy(), /selected source is assistant message 1.*Deepen assistant message 5/s);
+});
+
+test("an explicit explanation with a failed session write never becomes a handoff", async () => {
+  const h = host();
+  h.answer();
+  await h.command();
+  h.start("Check the deployment");
+  h.answer("Production deployment is still pending.");
+  h.end();
+  h.failApplied = true;
+  await h.command();
+  assert.match(h.policy(), /selected source is assistant message 3/);
+  assert.deepEqual(h.messages.at(-1)?.content, [{ type: "text", text: explanation }]);
+  await h.command("more");
+  assert.match(h.notices.at(-1)!, /No eliVibe explanation/);
+  assert.equal(h.submissions.length, 2);
+  await h.command();
+  assert.match(h.policy(), /selected source is assistant message 3/);
 });
 
 test("bare uses the latest completed ordinary answer while More keeps its source", async () => {
@@ -280,6 +303,20 @@ test("an opt-out answer cannot become an eliVibe interpretation by copying the h
   h.end();
   await h.command("more");
   assert.match(h.notices.at(-1)!, /No eliVibe explanation/);
+});
+
+test("an automatic heading with a failed session write remains part of the ordinary handoff", async () => {
+  const h = host();
+  await h.command("light");
+  h.failApplied = true;
+  assert.match(h.start("Fix the parser")!, /Light teaching policy/);
+  h.answer(`${source}\n\n${explanation}`);
+  h.end();
+  await h.command("more");
+  assert.match(h.notices.at(-1)!, /No eliVibe explanation/);
+  await h.command();
+  assert.match(h.policy(), /selected source is assistant message 1/);
+  assert.doesNotMatch(h.policy(), /report before the eliVibe heading/);
 });
 
 test("a request whose source disappears in preparation cannot substitute a different report", async () => {

@@ -65,13 +65,13 @@ function history(branch: readonly Entry[]) {
   const answers = new Map<string, Answer>();
   let source: Answer | undefined;
   let lesson: { source?: Answer; interpretation: Answer } | undefined;
-  let turn: { kind?: unknown; sourceId?: unknown } | undefined;
+  let turn: { id?: unknown; kind?: unknown; sourceId?: unknown } | undefined;
   let standalone = false;
   for (const entry of branch) {
     if (entry.type === "custom_message" && entry.customType === TURN && entry.attribution === "agent"
       && entry.display === false) {
       const marker = entry.details as { id?: unknown; kind?: unknown; sourceId?: unknown } | undefined;
-      turn = typeof marker?.id === "string" && applied.has(marker.id) ? marker : undefined;
+      turn = typeof marker?.id === "string" ? marker : undefined;
       continue;
     }
     if (entry.type === "custom_message" && entry.attribution === "user" && entry.display) {
@@ -87,12 +87,17 @@ function history(branch: readonly Entry[]) {
     if (message.role !== "assistant" || standalone) continue;
     const text = stoppedText(message);
     if (!text) continue;
+    const confirmed = typeof turn?.id === "string" && applied.has(turn.id);
+    if (turn?.kind === "explicit" && !confirmed) {
+      lesson = undefined;
+      continue;
+    }
     const answer: Answer = { id: entry.id, message };
     answers.set(entry.id, answer);
     if (turn?.kind === "explicit") {
       lesson = { source: typeof turn.sourceId === "string" ? answers.get(turn.sourceId) : undefined, interpretation: answer };
     } else {
-      answer.supplemented = turn?.kind === "automatic" && hasExplanationHeading(text);
+      answer.supplemented = turn?.kind === "automatic" && confirmed && hasExplanationHeading(text);
       if (answer.supplemented) lesson = { source: answer, interpretation: answer };
       source = answer;
     }
