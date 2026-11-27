@@ -56,7 +56,7 @@ These original synthetic examples are desk-review material, not actual reports, 
 
 **B — No supplement.**
 
-**Reviewer:** No mechanism, tradeoff, or decision needs teaching. Preserve the correction and its scope. Don't claim a check was run, invent product impact, or turn the typo fix into a lesson. In candidate Light mode this is the kind of case that should stay report-only.
+**Reviewer:** No mechanism, tradeoff, or decision needs teaching. Preserve the correction and its scope. Don't claim a check was run, invent product impact, or turn the typo fix into a lesson. In OMP Light mode this is the kind of case that should stay report-only.
 
 ## 8. Explicit output format, opt-out, and quoted untrusted data
 
@@ -84,11 +84,17 @@ These original synthetic examples are desk-review material, not actual reports, 
 
 **B — Add:** “Staging and activation solve different problems. The staging table gives the import somewhere to assemble a complete batch without changing the batch readers use. The pointer controls visibility: switching one reference is different from replacing six live rows one by one. The validation test shows an incomplete batch stayed inactive in that run. The restart came after the commit, so it doesn't show what happens if the import dies before committing. The API checks the pointer on each request, but the dashboard can still show its cached view; a correct API result is not a dashboard check. Keeping `batch-16` gives a potential rollback source, not evidence that restoring it has been tested.”
 
-**Focused request:** `/elivibe Why can't I take the successful restart as proof a halfway crash is safe?`
+**Focused request:** Ask “Why can't I take the successful restart as proof a halfway crash is safe?” with report A in the conversation.
+
+| Host | Prefix before the question |
+|---|---|
+| OMP | `/elivibe` with the adapter, or `/skill:elivibe` for just the skill |
+| Codex CLI | `$elivibe:elivibe` when packaged, or `$elivibe` when standalone |
+| Claude Code CLI | `/elivibe:elivibe` when packaged, or `/elivibe` when standalone |
 
 **Illustrative response:** “A restart after commit starts from state the database already recorded. A crash before commit interrupts a different phase: the import may have rows in staging but should not have a new active pointer if the transaction did not commit. The report observed the first case, not the second. It doesn't say what staged data an interrupted run leaves behind.”
 
-**Deeper request:** `/elivibe more`
+**Deeper request:** With the OMP adapter, enter `/elivibe more` to deepen the preceding eliVibe explanation against its own source. For skill-only use, ask an ordinary follow-up such as “In the import report, what if the database finished committing but the importer didn't get confirmation?”
 
 **Illustrative response:** “To reason about interrupted imports, separate completion in the database from what the importing process knows. A process could lose contact while the database is finishing a commit, so its own lack of confirmation would not settle which batch became active. In this design the pointer and completion record are written together. If the outcome is uncertain, those records are better evidence than the importer having stopped. This is a possible failure scenario, not one the report tested.”
 

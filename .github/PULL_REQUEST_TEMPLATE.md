@@ -4,7 +4,7 @@ What does this change, and why? Use a Conventional Commit title for the squash P
 
 ## Evidence
 
-What did you run, against which version or commit and host? What did you observe, and what's still unverified? For teaching changes, show an original synthetic handoff and the distinct explanation; don't present it as actual model output or user research.
+What did you run, against which version or commit and host? If applicable, distinguish the OMP adapter, packaged skill and standalone skill, and distinguish synthetic request or response fixtures from live model behavior. What did you observe, and what's still unverified? For teaching changes, show an original synthetic handoff and the distinct explanation; don't present it as actual model output or user research.
 
 ## Impact
 

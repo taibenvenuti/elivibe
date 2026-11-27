@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.0 — unreleased
+
+- Explain a handoff in Codex or Claude Code without installing an executable extension. Install one repository-backed plugin and ask `$elivibe:elivibe` (Codex) or `/elivibe:elivibe` (Claude Code). A focused question can use the same conversation. Neither host needs eliVibe credentials, a background request or a permission grant.
+- The standalone skill remains available. Its ZIP now includes Codex's explicit-only invocation policy as well as the canonical teaching file. A missing handoff is a reason to ask for it, not to infer what happened.
+- Oh My Pi (OMP) retains its native command, source-bound `more`, optional modes and depth settings. The GitHub and npm OMP packages do not install the Codex or Claude Code plugins.
+- The portable ZIP, native OMP archive and npm package include the same consumer README. See [installation and removal](docs/installation.md), [tested versions and limits](docs/compatibility.md), and [release evidence](docs/status.md). No official directory listing is included in this release.
+
+**Upgrading:** No OMP preference migration is required from 1.0.0. Install only one copy per host. When updating a standalone installation, replace the whole skill directory, not just `SKILL.md`. Runtime evidence is for Linux x64 CLI: Codex 0.162.1, Claude Code 2.1.291 and OMP 19.2.1. Synthetic turns demonstrate command delivery and continuity, not model quality; the new skill-only plugins do not enforce a tool veto.
+
 ## [v1.0.0](https://github.com/taibenvenuti/elivibe/releases/tag/v1.0.0) — 2026-11-27
 
 - **Breaking:** The ordinary conversation replaces v0.1.0's report-only routes. Manual and Light no longer use isolated requests; the host model can receive more than the report. Old route grants do not carry over. See [privacy and disclosure](docs/privacy.md).

@@ -1,30 +1,46 @@
 # Install, update, roll back, or remove
 
-## Try the published release
+Choose the host you already use. The plugin paths below need an already working host and its usual model access, but no eliVibe account, separate runtime, build, or manual clone. Install **one** copy per host: native plugin **or** standalone skill. If you already have a copy, [update or remove it](#update-roll-back-or-uninstall) rather than adding a second one.
 
-[v1.0.0](https://github.com/taibenvenuti/elivibe/releases/tag/v1.0.0) is the stable release. With OMP 19.2.1, install the native plugin from your shell:
+## Codex
+
+For Codex and Claude Code, check the [release tags](https://github.com/taibenvenuti/elivibe/tags) before copying. If `v1.1.0` is not listed, use the GitHub preview: run `export ELIVIBE_REF=feat/cross-harness-skills` in the same shell. For the released tag, leave `ELIVIBE_REF` unset. Use a release tag for a stable installation, not a moving preview branch. You can also use a reviewed [standalone copy](#standalone-skill).
+
+```sh
+codex plugin marketplace add "taibenvenuti/elivibe@${ELIVIBE_REF:-v1.1.0}" &&
+  codex plugin add elivibe@elivibe
+```
+
+Open a fresh session in that Codex profile. In the `$` picker, choose **elivibe (elivibe)**; the inserted token is `$elivibe:elivibe`. Use it in [your first explanation](#try-your-first-explanation).
+
+## Claude Code
+
+Use the same GitHub ref selection described [above](#codex). From your project directory:
+
+```sh
+claude plugin marketplace add "taibenvenuti/elivibe#${ELIVIBE_REF:-v1.1.0}" --scope local &&
+  claude plugin install elivibe@elivibe-marketplace --scope local
+```
+
+The `local` scope applies to this project on your machine (`.claude/settings.local.json`), not your shared project settings or other projects. Use a **branch or tag** in the GitHub shorthand, not a full commit SHA. Open a fresh session in the same project and use `/elivibe:elivibe` for [your first explanation](#try-your-first-explanation).
+
+## Oh My Pi (OMP)
+
+```sh
+omp plugin install elivibe@1.0.0
+```
+
+This is the published [npm package](https://www.npmjs.com/package/elivibe/v/1.0.0). If replacing a v0.1.0 link, [migrate it first](#move-from-a-v010-linked-install). Open a new OMP session and use `/elivibe` for [your first explanation](#try-your-first-explanation).
+
+### Try the published release
+
+For the same stable [v1.0.0](https://github.com/taibenvenuti/elivibe/releases/tag/v1.0.0) adapter from GitHub instead of npm, run this in your shell with OMP 19.2.1:
 
 ```sh
 omp plugin install github:taibenvenuti/elivibe#v1.0.0
 ```
 
-To install from [npm](https://www.npmjs.com/package/elivibe/v/1.0.0) instead, run `omp plugin install elivibe@1.0.0`.
-
-The plugin includes the skill; install only one copy. [Check the installation](#check-the-installation) and then [try your first explanation](#try-your-first-explanation). If replacing a v0.1.0 link, [migrate it first](#move-from-a-v010-linked-install). For the old release itself, use the [tagged v0.1.0 guide](https://github.com/taibenvenuti/elivibe/blob/v0.1.0/docs/installation.md).
-
-### Standalone ZIP
-
-For skill-only use, you need OMP, an already configured model and an unzip tool, but no plugin or build tools.
-
-1. Download [elivibe-1.0.0.zip](https://github.com/taibenvenuti/elivibe/releases/download/v1.0.0/elivibe-1.0.0.zip) and [SHA256SUMS](https://github.com/taibenvenuti/elivibe/releases/download/v1.0.0/SHA256SUMS) from the same release into one directory. From that directory on Linux/WSL:
-
-   ```sh
-   grep -F '  elivibe-1.0.0.zip' SHA256SUMS | sha256sum -c -
-   ```
-
-   Continue only if this prints `elivibe-1.0.0.zip: OK`. A checksum checks that the download matches the trusted manifest; it doesn't establish trust in a manifest from an unknown source.
-2. Extract the ZIP into a fresh directory. In the project where you use OMP, [copy just `elivibe/SKILL.md` into the project's skill directory](#standalone-skill).
-3. Start OMP from that project with skill commands enabled, then [try the example handoff](#try-your-first-explanation) using `/skill:elivibe`.
+[Check the installation](#check-the-installation) before first use. For the older release itself, use the [tagged v0.1.0 guide](https://github.com/taibenvenuti/elivibe/blob/v0.1.0/docs/installation.md).
 
 ## OMP installation sources
 
@@ -60,25 +76,33 @@ Keep the extracted directory intact while linked. Don't pass this tarball to `om
 
 ## Check the installation
 
-1. In your **shell**, run `omp plugin list --json`. Look for exactly one `elivibe` at version `1.0.0`; the list does **not** show the resolved GitHub SHA. Keep your original pinned command for rollback. Use `omp skill list --json` from the project root to check skill discovery. If you also have a standalone copy, move only that copy outside discovery to keep it for rollback.
+1. In your **shell**, run `omp plugin list --json`. Look for exactly one enabled `elivibe` with the expected version (for the published commands above, `1.0.0`) and path. A linked directory has a linked registration; both GitHub and registry installs can appear in the `npm` group. The list is not proof of the source URL or resolved GitHub SHA: keep your exact install command and pin. If you need to distinguish package-manager sources, check only the `dependencies.elivibe` entry in the plugin manager's `package.json` (at the plugin root above `node_modules` in the listed path), not the installed plugin's own manifest. Run `omp skill list --json` from the project root to check skill discovery. Move any standalone duplicate outside discovery to keep it for rollback.
 2. In a **new interactive OMP session** in that profile and project, enter `/elivibe status` and `/elivibe help`. With default settings, expect `manual` mode and usage for `more` and focused questions. `/elivibe status` checks adapter settings, not the installed version. These expectations do not apply to a standalone install or the v0.1.0 adapter.
 
 A profile is not a sandbox. Use the [native smoke procedure](development.md#native-omp-smoke) for contributor checks.
 
 ## Try your first explanation
 
-In an idle interactive OMP session with a configured model, paste this as a normal chat message. Let OMP return the handoff as an **assistant reply** before invoking eliVibe:
+In a fresh interactive session in the intended project, paste this as a normal chat message. Wait for the **assistant's handoff** before invoking the installed skill or plugin:
 
 ```text
 Return a short technical handoff for a fictional API that stages an inventory batch and activates it in one database transaction. State what that guarantees and one failure case still untested. Don't use tools, edit files, or claim you ran checks.
 ```
 
-- **v1.0.0 native plugin:** enter `/elivibe` on its own.
-- **Standalone skill:** enter `/skill:elivibe Why does the transaction matter?`. This needs OMP's skill commands enabled.
+| Installation | Ask a specific question in the same session |
+|---|---|
+| Codex plugin | Select **elivibe (elivibe)** in the `$` picker, then send `$elivibe:elivibe Why does the transaction matter?` |
+| Codex standalone | `$elivibe Why does the transaction matter?` |
+| Claude Code plugin | `/elivibe:elivibe Why does the transaction matter?` |
+| Claude Code standalone | `/elivibe Why does the transaction matter?` |
+| OMP plugin | `/elivibe Why does the transaction matter?` (or `/elivibe` for the whole handoff) |
+| OMP standalone | `/skill:elivibe Why does the transaction matter?` (requires OMP skill commands enabled) |
 
-If OMP is still working and the command doesn't start a response, wait until the session is idle and try again. The explanation should be distinct from the unchanged handoff. The report is the source account, not independent verification. These are ordinary OMP turns; use only material you can share through your active OMP setup.
+The explanation should be distinct from the unchanged handoff, not another verification. To go deeper, ask an ordinary follow-up: “If two batches are activated at once, what can't we conclude from this report?” Then continue working normally, for example: “Write one acceptance criterion for concurrent activation. Return only the criterion.”
 
-With the native plugin, follow up with `/elivibe more` or `/elivibe What wouldn't that transaction guarantee?`. For a future task, use `/elivibe light` to explain selectively or `/elivibe full` to request explanations with meaningful technical handoffs. The selected depth applies in both modes. See the [command table](../README.md#omp-commands).
+OMP's `/elivibe more` is an alternative when the preceding explanation **and its original handoff** are still available. If the original is gone, use a self-contained question, such as `/elivibe explain The fictional handoff says staging and activation occur in one database transaction; it doesn't report a concurrent activation test. Why does that distinction matter?` Then ask another focused question in the same conversation; `more` does not retrieve the old handoff. See [OMP modes and commands](../README.md#omp-commands).
+
+These are ordinary host turns. Use only material you can share through your active host and model setup; see [what reaches the model](privacy.md).
 
 ## Move from a v0.1.0 linked install
 
@@ -90,29 +114,66 @@ A resumed branch keeps its saved mode and depth. In particular, a saved **Light*
 
 ## Update, roll back, or uninstall
 
+### Codex plugin
+
+- **Update:** for the same Git marketplace ref, run `codex plugin marketplace upgrade elivibe` and `codex plugin add elivibe@elivibe` again. A pinned tag won't advance to another tag. To change pins or roll back, remove the plugin and marketplace as below, then rerun the install commands with the desired named ref. For a filesystem marketplace, use a reviewed source directory and re-add the plugin; the Git-marketplace upgrade command doesn't apply.
+- **Disable for one session:** start Codex with `codex -c 'plugins.elivibe@elivibe.enabled=false'`. Start it normally again to use the installed plugin; this doesn't change the persisted registration.
+- **Remove:** run `codex plugin remove elivibe@elivibe`, then `codex plugin marketplace remove elivibe` if you no longer want the marketplace. These operate on the current Codex profile. Start a fresh session after changing the install.
+
+### Claude Code plugin
+
+- **Update:** from the same project, run `claude plugin marketplace update elivibe-marketplace`, then `claude plugin update elivibe@elivibe-marketplace --scope local`. A pinned tag won't advance to another tag. To switch pins or roll back, remove the plugin and marketplace as below, then rerun the install commands with the desired named ref.
+- **Disable or re-enable:** run `claude plugin disable elivibe@elivibe-marketplace --scope local` or `claude plugin enable elivibe@elivibe-marketplace --scope local`.
+- **Remove:** run `claude plugin uninstall elivibe@elivibe-marketplace --scope local`, then `claude plugin marketplace remove elivibe-marketplace --scope local` if you no longer want the marketplace. Use the scope in which you installed it; the examples use `local`, not shared `project` or all-projects `user`. Start a fresh session after changing the install.
+
+### OMP plugin
+
+- **Registry source only:** record your current version before switching. With a confirmed registry install, run `omp plugin install elivibe@VERSION --force`, replacing `VERSION` with the exact available npm version. Use the same command with the previous version to roll back. This is a pinned reinstall tested with registry fixtures, not `omp plugin upgrade` or a claim that another public version is available. Never force over a GitHub install, local link, or unknown source.
 - **GitHub source:** record the installed tag or full SHA. Uninstall the current registration, then install from the next verified tag or full SHA. To roll back, reinstall from the previous verified ref. Keep the previous pin before switching; don't substitute a moving branch.
 - **Checkout or offline archive:** keep the previous reviewed directory. Unregister the current link and `omp plugin link` the new reviewed directory, or link the previous directory to roll back. Don't overwrite a linked path or use `omp plugin upgrade` for a local link. A rollback to v0.1.0 still has its old side-request paths.
-- **Uninstall:** `omp plugin uninstall elivibe` in the same profile, then open a fresh session. This unregisters the adapter and bundled skill. An unlinked checkout or extracted archive is still yours to keep. Restore a former standalone copy only if you want skill-only use.
+- **Remove:** `omp plugin uninstall elivibe` in the same profile. This unregisters the adapter and bundled skill without deleting a linked checkout or extracted archive. Restore a former standalone copy only if you want skill-only use.
 
-After updating or rolling back, [check the installed version and source](#check-the-installation) in a fresh session.
+Close the old OMP session before switching or removing. [Check the resulting version and registration](#check-the-installation), then open a fresh session.
 
 ## Standalone skill
 
-Use the extracted `elivibe/SKILL.md` from the verified ZIP, or the [canonical `skills/elivibe/SKILL.md`](../skills/elivibe/SKILL.md) from a reviewed checkout. Run this from your OMP project's root, replacing the source path:
+### Standalone ZIP
+
+If you have the prepared `elivibe-1.1.0.zip` locally, use it with its matching `SHA256SUMS`; this is not a claim that the asset is published. From the download directory on Linux/WSL, run `grep -F '  elivibe-1.1.0.zip' SHA256SUMS | sha256sum -c -` and proceed only on `elivibe-1.1.0.zip: OK`. Extract into a fresh directory **outside** skill discovery and use its `elivibe/` folder. Leave the ZIP's root `README.md` and `LICENSE` in staging; keep the license with any redistribution.
+
+If you don't have the ZIP, use a **GitHub source archive**: download [the signed product snapshot](https://github.com/taibenvenuti/elivibe/archive/d038ddfefe0e39d45cb0f5df37da3cbacf45f511.zip) or use **Code → Download ZIP** on the reviewed branch or tag. Extract outside skill discovery and use its `skills/elivibe/` folder. No plugin marketplace or clone is needed. Keep the ref or snapshot you downloaded so you can reinstall the same files.
+
+For the older OMP-only release, follow the [v1.0.0 ZIP instructions](https://github.com/taibenvenuti/elivibe/blob/v1.0.0/docs/installation.md#standalone-zip) instead. **Do not install that ZIP in Codex:** it lacks `agents/openai.yaml`, the file that keeps Codex invocation explicit-only.
+
+### Copy into one project
+
+From the project root, choose the destination for your host:
+
+| Host | Project skill directory | New-session invocation |
+|---|---|---|
+| Codex | `.agents/skills/elivibe/` | `$elivibe` (the standalone option in the `$` picker) |
+| Claude Code | `.claude/skills/elivibe/` | `/elivibe` |
+| OMP | `.agents/skills/elivibe/` | `/skill:elivibe` (skill commands enabled) |
+
+Copy only the whole `elivibe/` skill folder from the prepared ZIP or GitHub snapshot, including `SKILL.md` and `agents/openai.yaml`. This recipe refuses to install a source missing either file. Set `source` to the extracted skill folder's absolute path and use `.claude/skills` instead of `.agents/skills` for Claude Code:
 
 ```sh
-mkdir -p .agents/skills &&
-  mkdir .agents/skills/elivibe &&
-  cp /absolute/path/to/elivibe/SKILL.md .agents/skills/elivibe/
+source=/absolute/path/to/extracted/elivibe
+destination=.agents/skills
+test -f "$source/SKILL.md" &&
+  test -f "$source/agents/openai.yaml" &&
+  mkdir -p "$destination" &&
+  mkdir "$destination/elivibe" &&
+  cp -R "$source/." "$destination/elivibe/"
 ```
 
-The second `mkdir` stops if an installation already exists. Do not copy the skill beside a native install. From the project root, run `omp skill list --json`, then start a fresh session. Use `/skill:elivibe` with the report already in the conversation or with an explicit question. The v1.0.0 skill is not advertised for automatic model invocation; native modes require the plugin.
+The second `mkdir` stops if that destination already exists. Check for an existing user-scope or plugin copy too; Codex and OMP can discover the same `.agents/skills/` directory. Open a fresh session from this project and [try an explanation](#try-your-first-explanation); for OMP you can also check discovery with `omp skill list --json`.
 
-To update or roll back a skill-only install, save the old file outside discovery and replace only that installation's file. To remove it, remove your copied `SKILL.md` and its now-empty `elivibe` directory, then start a fresh session. If you redistribute the standalone file, include the copyright and [MIT license text](../LICENSE) outside the runtime skill directory.
+To disable or remove the standalone skill, move just the copied `elivibe/` directory outside every skill discovery path or delete just that copy. To update, keep the previous copy outside discovery and install the new folder; reverse that swap to roll back or restore it. Start a fresh session after each change. None of these steps requires editing any other skill.
 
 ## Troubleshooting
 
-- **Command missing or duplicated:** in the shell, check the active profile with `omp plugin list --json` and skill discovery with `omp skill list --json`. Look for a broken package link, disabled skill discovery or skill commands, or a second copy. Restart OMP after changing a registration or file.
-- **No explanation:** Manual and Off do not add one automatically; use `/elivibe <question>` or `/skill:elivibe`. For a report that's no longer in context, quote its relevant non-sensitive evidence; eliVibe does not retrieve it from another session. An output-only request or opt-out takes precedence over automatic explanation.
-- **Unexpected version or checksum:** stop. Compare the intended version, verified bundle, and linked path; relink the previous verified archive if needed.
+- **Command missing or duplicated:** check the active profile and project, and use the invocation matching your installation. Start a fresh session after changing a registration or file. For OMP, check `omp plugin list --json` and `omp skill list --json`; also check that standalone skill commands are enabled.
+- **No handoff or explanation to build on:** use the same session or include the relevant non-sensitive facts with a specific question. Do not expect `/elivibe more` to retrieve a missing OMP source, or any host to fetch a report from another conversation. OMP's Manual and Off modes don't add explanations automatically.
+- **Unexpected version or checksum:** stop. Compare the recorded source, verified bundle, and installed path; restore the previous verified copy if needed.
 - **A question contains an `@file` or `^model` mention:** OMP can expand these before sending the request. eliVibe refuses expanding mentions instead of reading a file or changing the request. Describe the file or model by name without the mention prefix, or paste a short non-sensitive excerpt.
