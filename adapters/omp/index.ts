@@ -64,7 +64,6 @@ function history(branch: readonly Entry[]) {
   let source: Answer | undefined;
   let lesson: { source?: Answer; interpretation: Answer } | undefined;
   let turn: { kind?: unknown; sourceId?: unknown } | undefined;
-  let usedTools = false;
   let standalone = false;
   for (const entry of branch) {
     if (entry.type === "custom_message" && entry.customType === TURN && entry.attribution === "agent"
@@ -76,16 +75,13 @@ function history(branch: readonly Entry[]) {
     if (entry.type === "custom_message" && entry.attribution === "user" && entry.display) {
       standalone = entry.customType === "skill-prompt" && (entry.details as { name?: unknown } | undefined)?.name === "elivibe";
       turn = undefined;
-      usedTools = false;
     }
     if (entry.type !== "message") continue;
     const message = entry.message;
     if (message.role === "user") {
       standalone = false;
       turn = undefined;
-      usedTools = false;
     }
-    if (message.role === "toolResult") usedTools = true;
     if (message.role !== "assistant" || standalone) continue;
     const text = stoppedText(message);
     if (!text) continue;
@@ -96,8 +92,7 @@ function history(branch: readonly Entry[]) {
     } else {
       answer.supplemented = turn?.kind === "automatic" && hasExplanationHeading(text);
       if (answer.supplemented) lesson = { source: answer, interpretation: answer };
-      // Without tool activity a subsequent reply may be ordinary discussion, not a new handoff.
-      if (!lesson || !source || usedTools || answer.supplemented) source = answer;
+      source = answer;
     }
   }
   const firstKept = retainedStart(branch);

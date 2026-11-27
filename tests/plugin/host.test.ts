@@ -174,13 +174,20 @@ test("More keeps the source through repeated explanations, follow-up, and branch
   assert.match(h.policy(), /selected source is assistant message 1.*Deepen assistant message 5/s);
 });
 
-test("a new tool-backed handoff does not replace the source of More", async () => {
+test("bare uses the latest completed ordinary answer while More keeps its source", async () => {
   const h = host();
   h.answer();
   await h.command();
-  h.start("Work on a different task");
-  h.push({ role: "toolResult", content: "New results" });
+  await h.command("off");
+  h.start("Return a report in Off mode.");
   h.answer("New report.");
+  h.end();
+  h.start("Try another approach");
+  h.answer("Incomplete attempt.", "aborted");
+  h.end();
+  h.push({ role: "custom", customType: "skill-prompt", attribution: "user", display: true,
+    details: { name: "elivibe" }, content: "Standalone eliVibe invocation" });
+  h.answer("Standalone explanation.");
   h.end();
   await h.command("more");
   assert.match(h.policy(), /selected source is assistant message 1.*Deepen assistant message 2/s);
