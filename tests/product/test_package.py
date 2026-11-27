@@ -20,6 +20,7 @@ def skill(tmp_path):
     (tmp_path / "skills/.codex-plugin").mkdir()
     (tmp_path / "skills/.codex-plugin/plugin.json").write_text("{}")
     (tmp_path / "skills/LICENSE").touch()
+    (tmp_path / "skills/icon.svg").touch()
     return path
 
 

@@ -25,6 +25,7 @@ CODEX_SKILL = "skills/elivibe/agents/openai.yaml"
 CODEX_PLUGIN = "skills/.codex-plugin/plugin.json"
 CODEX_CATALOG = ".agents/plugins/marketplace.json"
 CODEX_LICENSE = "skills/LICENSE"
+CODEX_ICON = "skills/icon.svg"
 PORTABLE_CODEX = "elivibe/agents/openai.yaml"
 PORTABLE_FILES = ["elivibe/SKILL.md", PORTABLE_CODEX, "LICENSE"]
 GIT_ENV = {**os.environ, "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull}
@@ -60,7 +61,14 @@ def source(tmp_path):
     root = tmp_path / "source"
     root.mkdir()
     git(root, "init", "-q", "--initial-branch=main", "--template=")
-    for relative in (*SOURCES, CODEX_SKILL, CODEX_PLUGIN, CODEX_CATALOG, CODEX_LICENSE):
+    for relative in (
+        *SOURCES,
+        CODEX_SKILL,
+        CODEX_PLUGIN,
+        CODEX_CATALOG,
+        CODEX_LICENSE,
+        CODEX_ICON,
+    ):
         path = root / relative
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes((ROOT / relative).read_bytes())
@@ -230,7 +238,9 @@ def test_unexpected_committed_omp_discovery_path_rejected(source, relative):
 def test_committed_codex_policy_cannot_enable_implicit_invocation(source, content):
     root, _ = source
     (root / CODEX_SKILL).write_bytes(content)
-    with pytest.raises(ValueError, match="Codex skill must disable implicit invocation"):
+    with pytest.raises(
+        ValueError, match="Codex skill must disable implicit invocation"
+    ):
         package.artifacts(root, VERSION, commit(root))
 
 
@@ -239,8 +249,32 @@ def test_committed_codex_policy_cannot_enable_implicit_invocation(source, conten
     [
         (CODEX_PLUGIN, b"./elivibe", b"..", "invalid Codex plugin manifest"),
         (CODEX_PLUGIN, VERSION.encode(), b"9.9.9", "invalid Codex plugin manifest"),
+        (
+            CODEX_PLUGIN,
+            b"./icon.svg",
+            b"../icon.svg",
+            "invalid Codex plugin directory metadata",
+        ),
+        (
+            CODEX_PLUGIN,
+            b'"capabilities": []',
+            b'"capabilities": ["Read"]',
+            "invalid Codex plugin directory metadata",
+        ),
         (CODEX_CATALOG, b"./skills", b"./", "invalid Codex marketplace catalog"),
         (CODEX_LICENSE, b"MIT License", b"Changed", "Codex license differs"),
+        (
+            CODEX_ICON,
+            b"</svg>",
+            b"<script>void 0</script></svg>",
+            "Codex plugin icon must use only static SVG shapes",
+        ),
+        (
+            CODEX_ICON,
+            b"</svg>",
+            b'<path d="M0 0" fill="url(https://example.invalid/paint.svg)"/></svg>',
+            "Codex plugin icon must use only static SVG shapes",
+        ),
     ],
 )
 def test_committed_codex_metadata_rejects_drift(
@@ -298,7 +332,15 @@ def test_package_rejects_invalid_versions(source, version):
 
 @pytest.mark.parametrize(
     "relative",
-    [SOURCES[0], SOURCES[2], "package.json", "LICENSE", CODEX_SKILL, CODEX_PLUGIN],
+    [
+        SOURCES[0],
+        SOURCES[2],
+        "package.json",
+        "LICENSE",
+        CODEX_SKILL,
+        CODEX_PLUGIN,
+        CODEX_ICON,
+    ],
 )
 def test_package_rejects_committed_symlinks(source, relative):
     root, _ = source

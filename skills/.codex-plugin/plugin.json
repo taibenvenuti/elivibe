@@ -6,5 +6,18 @@
     "name": "Tai Benvenuti"
   },
   "license": "MIT",
-  "skills": "./elivibe"
+  "skills": "./elivibe",
+  "interface": {
+    "displayName": "eliVibe",
+    "shortDescription": "Explain technical handoffs",
+    "longDescription": "Ask eliVibe to explain a coding handoff in plain language. It shows how the parts fit together, why a change matters, and what the evidence does not establish, without replacing the original report or independently verifying its claims.",
+    "developerName": "Tai Benvenuti",
+    "category": "Productivity",
+    "capabilities": [],
+    "websiteURL": "https://github.com/taibenvenuti/elivibe",
+    "supportURL": "https://github.com/taibenvenuti/elivibe/issues",
+    "privacyPolicyURL": "https://github.com/taibenvenuti/elivibe/blob/main/docs/privacy.md",
+    "composerIcon": "./icon.svg",
+    "logo": "./icon.svg"
+  }
 }

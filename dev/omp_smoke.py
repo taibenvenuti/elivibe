@@ -923,6 +923,7 @@ def exercise(sink, peers, *, hosted, netns):
         if number == version:
             assert files == npm_files
         else:
+            assert files.keys() == npm_files.keys()
             assert manifest == {**npm_manifest, "version": number}
             assert all(
                 data == npm_files[name]

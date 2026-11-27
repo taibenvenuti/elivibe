@@ -11,7 +11,9 @@ import subprocess
 import tarfile
 import tempfile
 import zipfile
+import xml.etree.ElementTree as ET
 from pathlib import Path
+from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
 STABLE = r"(?:0|[1-9][0-9]*)(?:\.(?:0|[1-9][0-9]*)){2}"
@@ -21,8 +23,10 @@ SKILL = "skills/elivibe/SKILL.md"
 CODEX_SKILL = "skills/elivibe/agents/openai.yaml"
 CODEX_PLUGIN = "skills/.codex-plugin/plugin.json"
 CODEX_LICENSE = "skills/LICENSE"
+CODEX_ICON = "skills/icon.svg"
 CODEX_CATALOG = ".agents/plugins/marketplace.json"
-CODEX_SOURCES = (CODEX_SKILL, CODEX_PLUGIN, CODEX_LICENSE, CODEX_CATALOG)
+CODEX_CONTENT = (CODEX_SKILL, CODEX_PLUGIN, CODEX_LICENSE, CODEX_ICON)
+CODEX_SOURCES = (*CODEX_CONTENT, CODEX_CATALOG)
 CODEX_POLICY = b"policy:\n  allow_implicit_invocation: false\n"
 LICENSE_ID = "MIT"
 ENTRY = "adapters/omp/index.ts"
@@ -78,7 +82,7 @@ def validate_codex_skill(data: bytes) -> None:
 
 def skill_digest(root: Path) -> str:
     for directory, children in (
-        ("skills", {"elivibe", ".codex-plugin", "LICENSE"}),
+        ("skills", {"elivibe", ".codex-plugin", "LICENSE", "icon.svg"}),
         ("skills/.codex-plugin", {"plugin.json"}),
         ("skills/elivibe", {"SKILL.md", "agents"}),
         ("skills/elivibe/agents", {"openai.yaml"}),
@@ -98,32 +102,115 @@ def skill_digest(root: Path) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+def validate_codex_icon(data: bytes) -> None:
+    # This icon uses only direct SVG shapes; it is not an arbitrary SVG input.
+    invalid = "Codex plugin icon must use only static SVG shapes"
+    text = data.decode("utf-8")
+    if "<?" in text or "<!" in text:
+        raise ValueError(invalid)
+    try:
+        svg = ET.fromstring(text)
+    except ET.ParseError as error:
+        raise ValueError(invalid) from error
+    ns = "{http://www.w3.org/2000/svg}"
+    shape_attributes = {
+        ns + "rect": {"width", "height", "rx", "fill"},
+        ns + "path": {
+            "d",
+            "fill",
+            "stroke",
+            "stroke-width",
+            "stroke-linecap",
+            "stroke-linejoin",
+        },
+    }
+    if (
+        svg.tag != ns + "svg"
+        or svg.attrib.keys() - {"width", "height", "viewBox"}
+        or (svg.text or "").strip()
+        or not len(svg)
+    ):
+        raise ValueError(invalid)
+    for shape in svg:
+        if (
+            shape.tag not in shape_attributes
+            or shape.attrib.keys() - shape_attributes[shape.tag]
+            or len(shape)
+            or (shape.text or "").strip()
+            or (shape.tail or "").strip()
+        ):
+            raise ValueError(invalid)
+        for key in shape.attrib.keys() & {"fill", "stroke"}:
+            if not re.fullmatch(
+                r"none|#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?", shape.attrib[key]
+            ):
+                raise ValueError(invalid)
+
+
 def validate_codex(sources: dict[str, bytes], version: str) -> None:
     validate_codex_skill(sources[CODEX_SKILL])
     if sources[CODEX_LICENSE] != sources["LICENSE"]:
         raise ValueError("Codex license differs from the root license")
     plugin = json.loads(sources[CODEX_PLUGIN])
+    fields = {
+        "name",
+        "version",
+        "description",
+        "author",
+        "license",
+        "skills",
+        "interface",
+    }
     if not (
         isinstance(plugin, dict)
-        and plugin.keys() == {"name", "version", "description", "author", "license", "skills"}
+        and plugin.keys() == fields
         and plugin["name"] == "elivibe"
         and plugin["version"] == version
         and isinstance(plugin["description"], str)
         and plugin["description"].strip()
-        and plugin["author"] == {"name": "Tai Benvenuti"}
+        and isinstance(plugin["author"], dict)
+        and plugin["author"].keys() == {"name"}
+        and isinstance(plugin["author"]["name"], str)
+        and plugin["author"]["name"].strip()
         and plugin["license"] == LICENSE_ID
         and plugin["skills"] == "./elivibe"
     ):
         raise ValueError("invalid Codex plugin manifest")
+    interface = plugin["interface"]
+    text = {
+        "displayName",
+        "shortDescription",
+        "longDescription",
+        "developerName",
+        "category",
+    }
+    urls = {"websiteURL", "supportURL", "privacyPolicyURL"}
+    icons = {"composerIcon", "logo"}
+    if not (
+        isinstance(interface, dict)
+        and interface.keys() == text | urls | icons | {"capabilities"}
+        and all(
+            isinstance(interface[key], str) and interface[key].strip()
+            for key in text | urls
+        )
+        and all(
+            (url := urlsplit(interface[key])).scheme == "https" and url.hostname
+            for key in urls
+        )
+        and interface["capabilities"] == []
+        and all(interface[key] == "./icon.svg" for key in icons)
+    ):
+        raise ValueError("invalid Codex plugin directory metadata")
+    validate_codex_icon(sources[CODEX_ICON])
     if json.loads(sources[CODEX_CATALOG]) != {
         "name": "elivibe",
-        "interface": {"displayName": "eliVibe"},
+        "interface": {"displayName": interface["displayName"]},
         "plugins": [
             {
                 "name": "elivibe",
                 "source": {"source": "local", "path": "./skills"},
                 "policy": {"installation": "AVAILABLE", "authentication": "ON_INSTALL"},
-                "category": "Productivity",
+                "category": interface["category"],
             }
         ],
     }:
@@ -135,7 +222,8 @@ def validate_checkout_metadata(root: Path, version: str) -> None:
     for directory in (".agents", ".agents/plugins"):
         if not stat.S_ISDIR((root / directory).lstat().st_mode):
             raise ValueError(f"invalid Codex manifest directory: {directory}")
-    if {child.name for child in (root / ".agents/plugins").iterdir()} != {"marketplace.json"}:
+    catalog = root / CODEX_CATALOG
+    if {child.name for child in catalog.parent.iterdir()} != {catalog.name}:
         raise ValueError("unexpected Codex marketplace tree")
     sources = {}
     for name in (*CODEX_SOURCES, "LICENSE"):
@@ -234,7 +322,7 @@ def release_sources(root: Path, version: str, commit: str) -> dict[str, bytes]:
         if any(entry == name or entry.startswith(name + b"/") for entry in entries):
             raise ValueError(f"unexpected OMP discovery path: {path}")
     if {name for name in entries if name.startswith(b"skills/")} != {
-        name.encode() for name in (SKILL, CODEX_SKILL, CODEX_PLUGIN, CODEX_LICENSE)
+        name.encode() for name in (SKILL, *CODEX_CONTENT)
     }:
         raise ValueError("unexpected skill tree")
     if {
@@ -255,8 +343,8 @@ def release_sources(root: Path, version: str, commit: str) -> dict[str, bytes]:
         if name in notice_names and not sources[name].strip():
             raise ValueError(f"empty distribution notice: {name}")
     validate_skill(sources[SKILL])
-    validate_codex(sources, version)
     validate_manifest(json.loads(sources["package.json"]), version)
+    validate_codex(sources, version)
     return sources
 
 

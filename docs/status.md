@@ -9,8 +9,8 @@ Base: `15d6d849677b1509396352ff3e5348a4bff33852`, [green main CI](https://github
 | Gate | Current evidence |
 |---|---|
 | Baseline | Remote `main` and the peeled tag matched the revisions above; GitHub listed the three v1.0.0 assets and npm `latest` resolved to 1.0.0. |
-| Codex | CLI 0.162.1 available on Linux x64. Actual explicit invocation with implicit selection disabled, distribution, lifecycle and focused review pending. |
-| Claude Code | CLI 2.1.291 available on Linux x64. Runtime and review pending the Codex gate. |
+| Codex | CLI 0.162.1, Linux x64. At `e13eb23`, installed ZIP and local marketplace, tested actual picker and turn delivery: `$elivibe` standalone, `$elivibe:elivibe` packaged. Ordinary input omitted the skill; explicit input included its complete body. Six synthetic turns covered prior answer, focus, missing evidence/source and return to coding. Fixture update/rollback and removal preserved an unrelated skill. Independent review repeated installation and the policy-negative control; corrected listing wording, icon checks and npm keywords. Existing host route returned HTTP 401 **before its first model answer**. No live explanation or quality claim. |
+| Claude Code | CLI 2.1.291, Linux x64. Next: verify skill-only package, command namespace, focus and lifecycle in a clean consumer. |
 | Shared distribution and public docs | Integrated native regression, packed README, release rehearsal, fresh-reader review, draft PR and remote acquisition pending. No directory submission or release authorized. |
 
 ## v1.0.0 release record
