@@ -22,12 +22,12 @@ Use OMP 19.2.1 in the intended profile. Pick **one** source for the unreleased v
 
 | Source | OMP command | When to run |
 |---|---|---|
-| GitHub | No verified install command yet. | **Pending verification from an exact reviewed commit.** Use the local checkout until a verified pin is listed here. Don't substitute an old tag or a moving branch. |
-| npm | No public install command. | A historical 0.2.0 loopback-registry install does not establish a public listing or verify 1.0.0. Wait for a version linked by this project; an npm listing under the same name is not enough. See the [publication and verification procedure](release.md). |
+| GitHub candidate | `omp plugin install github:taibenvenuti/elivibe#440f0f3024253fd86f7955db4ab251364fb96cd5` | Run in your shell. This immutable, reviewed development commit was installed and exercised from GitHub with OMP 19.2.1 on Linux x64. It is **not** a stable tag. Start a new session, complete a coding task and enter `/elivibe`. |
+| npm | No public install command. | The actual `elivibe@1.0.0` tarball passed a disposable registry install. It is **not published to npm**. See [status](status.md) before using any public name or version. |
 | Local checkout | `omp plugin link "$PWD"` | Available for local review now. Run from the root of a clean checkout at the reviewed candidate commit. OMP loads the files directly: keep the directory intact and unchanged while linked. |
 | Verified native archive | `omp plugin link /absolute/path/to/extracted/elivibe-omp` | Offline alternative. Use the [published v0.1.0 archive](#try-the-published-release) for that version. Use the equivalent [archive verification steps](#verify-and-link-an-offline-archive) for any trusted candidate archive you already have. |
 
-Consumers need a working OMP installation; its standalone binary embeds the package-manager runtime. No Python, uv, separate Node or Bun install. Have Git available for a Git-source install. By default OMP registers plugins in the active user plugin directory, which may be shared by profiles. If you already have eliVibe linked, [migrate the existing install](#move-from-a-v010-linked-install) instead of forcing a replacement.
+Consumers need a working OMP installation. Its standalone binary embeds the package-manager runtime; no Python, uv, separate Node or Bun install. The tested `github:` shorthand fetched an HTTPS archive from GitHub. By default OMP registers plugins in the active user plugin directory, which may be shared by profiles. If you already have eliVibe linked, [migrate the existing install](#move-from-a-v010-linked-install) rather than forcing a replacement.
 
 ## Verify and link an offline archive
 
@@ -50,7 +50,7 @@ Keep the extracted directory intact while linked. Don't pass this tarball to `om
 
 ## Check the installation
 
-1. In your **shell**, run `omp plugin list --json`. Look for `elivibe` at version `1.0.0` and check the source against the pin or local path you selected. Use `omp skill list --json` from the project root to check skill discovery. If you also have a standalone copy, move only that copy outside discovery to keep it for rollback.
+1. In your **shell**, run `omp plugin list --json`. Look for exactly one `elivibe` at version `1.0.0`; the list does **not** show the resolved GitHub SHA. Keep your original pinned command for rollback. Use `omp skill list --json` from the project root to check skill discovery. If you also have a standalone copy, move only that copy outside discovery to keep it for rollback.
 2. In a **new interactive OMP session** in that profile and project, enter `/elivibe status` and `/elivibe help`. With default settings, expect `manual` mode and usage for `more` and focused questions. `/elivibe status` checks adapter settings, not the installed version; these candidate expectations do not apply to a standalone install or the published v0.1.0 adapter.
 
 A profile is not a sandbox. Use the [native smoke procedure](development.md#native-omp-smoke) for contributor checks.

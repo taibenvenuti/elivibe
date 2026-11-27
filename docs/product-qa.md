@@ -16,6 +16,10 @@ Use the [development checks](development.md) and [native smoke procedure](develo
 
 Count OMP metadata discovery separately from model inference. For an explicit request, expect an ordinary OMP turn, not zero traffic; for in-turn guidance, compare with an equivalent ordinary task, not a fixed number of model calls (a task can use tools or take multiple steps). A synthetic test can establish tested request paths, payloads, and lifecycle behavior. It can't establish how a different host, a real provider, or a particular model will behave, or prove isolation or redaction.
 
+## GitHub candidate first use
+
+At `440f0f3024253fd86f7955db4ab251364fb96cd5`, a disposable OMP 19.2.1 installation on Linux x64 fetched the actual public `github:` pin. The package manager's archive integrity and embedded full commit matched the independent public download; all 46 installed tracked files matched Git. In a loopback-only session, help/status made no model request. Manual/auto was the default. An ordinary coding turn wrote a real fixture; the original handoff stayed unchanged through bare `/elivibe` and `/elivibe more`. Explicit `/skill:elivibe` worked. Five synthetic requests total. Removal kept the fixture and the unrelated plugin. This proves the GitHub consumer path on that revision, not a new live teaching result.
+
 ## Observed development walkthrough
 
 At `b85ae4420cdb6a86ef99d45eab0be024c8a9f522`, an implementer used a fresh OMP 19.2.1 ACP session on WSL Linux x64 with the already authenticated `openai-codex/gpt-6.2-astra`. The outbox task was fictional. These are short excerpts of actual model output, not authored examples:
