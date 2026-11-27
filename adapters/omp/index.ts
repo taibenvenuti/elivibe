@@ -20,6 +20,7 @@ const BUSY = "Wait for OMP to finish, then try /elivibe again.";
 const NO_SOURCE = "No completed handoff is available in this context. Ask OMP for a handoff or use /elivibe with a specific question.";
 const NO_EXPLANATION = "No eliVibe explanation with its source is available in this context. Run /elivibe or ask a specific question first.";
 const NO_MODEL = "Use OMP’s /login or /model to sign in or select an active model, then retry.";
+const REQUEST_CHANGED = "OMP changed or queued the explanation request before dispatch. Wait for OMP to finish, then retry /elivibe.";
 
 type Message = SessionMessageEntry["message"];
 type Assistant = Extract<Message, { role: "assistant" }>;
@@ -33,6 +34,7 @@ type Pending = {
   source?: Answer;
   interpretation?: Answer;
   accepted: boolean;
+  refused?: boolean;
   settled: boolean;
 };
 type Run = {
@@ -119,21 +121,37 @@ function authoredText(message: Message): string | undefined {
     : message.content.map(part => part.type === "text" ? part.text : "").join("\n");
 }
 
-function answerPosition(messages: Message[], target: Answer): number | undefined {
+function answerPosition(messages: Message[], target: Answer, { backward = false, end = messages.length } = {}): number | undefined {
   const targetText = stoppedText(target.message);
   const { timestamp, provider, model } = target.message;
   let position: number | undefined;
+  let ambiguous = false;
   let count = 0;
-  for (const message of messages) {
+  for (let offset = 0; offset < end; offset++) {
+    const message = messages[backward ? end - offset - 1 : offset];
     if (message.role !== "assistant") continue;
+    const visible = message.content.some(part => part.type === "toolCall" || (part.type === "text" && part.text.trim()));
+    if (!visible) continue;
     count++;
+    // Incomplete visible turns may or may not survive provider replay. Do not guess a later ordinal.
+    if (message.stopReason !== "stop" && message.stopReason !== "toolUse") ambiguous = true;
     if (message.timestamp === timestamp && message.provider === provider && message.model === model
       && stoppedText(message) === targetText) {
-      if (position !== undefined) return;
-      position = count;
+      if (ambiguous || position !== undefined) return;
+      position = backward ? -count : count;
     }
   }
   return position;
+}
+
+function replayPosition(messages: Message[], answer: Answer | undefined) {
+  if (answer) return answerPosition(messages, answer) ?? answerPosition(messages, answer, { backward: true });
+}
+
+function refuse(request: Pending, ctx: ExtensionContext, message: string) {
+  if (!request.refused) ctx.ui.notify(message, "info");
+  request.refused = true;
+  ctx.abort();
 }
 
 export default function elivibe(pi: ExtensionAPI): void {
@@ -164,23 +182,24 @@ export default function elivibe(pi: ExtensionAPI): void {
     if (ctx.agent.kind !== "main") return;
     const session = ctx.sessionManager.getSessionId();
     const config = preference(ctx);
-    const candidate = pending?.session === session && pending.prompt === event.prompt ? pending : undefined;
+    const request = pending?.session === session ? pending : undefined;
+    const candidate = request?.prompt === event.prompt ? request : undefined;
     if (run?.explicit?.accepted && run.session === session && run.agent === ctx.agent.id && candidate !== run.explicit) {
-      ctx.abort();
+      refuse(run.explicit, ctx, REQUEST_CHANGED);
       return;
     }
     const branch = ctx.sessionManager.getBranch();
     // OMP can compact during prompt setup. It must not insert another user turn between
     // our admission snapshot and the candidate request.
-    const anchor = candidate?.leaf ? branch.findIndex(entry => entry.id === candidate.leaf) : -1;
-    const explicit = candidate && (!candidate.leaf || anchor >= 0)
+    const anchor = request?.leaf ? branch.findIndex(entry => entry.id === request.leaf) : -1;
+    const ownsSlot = request && (!request.leaf || anchor >= 0)
       && !branch.slice(anchor + 1).some(entry => (entry.type === "message" && entry.message.role === "user")
-        || (entry.type === "custom_message" && entry.attribution === "user" && entry.display))
-      ? candidate : undefined;
-    if (candidate && !explicit) {
-      ctx.abort();
+        || (entry.type === "custom_message" && entry.attribution === "user" && entry.display));
+    if (request && (candidate ? !ownsSlot : ownsSlot && (!request.settled || /^\/elivibe(?:\s|$)/.test(event.prompt)))) {
+      refuse(request, ctx, REQUEST_CHANGED);
       return;
     }
+    const explicit = candidate;
     const mode = config.mode;
     if (!explicit && ((mode !== "light" && mode !== "full") || letsReplyStand(event.prompt)
       || event.prompt.startsWith("[IMPORTANT: User invoked the \"elivibe\" skill;"))) {
@@ -192,16 +211,19 @@ export default function elivibe(pi: ExtensionAPI): void {
     let instructions: string;
     if (explicit) {
       const retained = branch.slice(retainedStart(branch)).flatMap(entry => entry.type === "message" ? [entry.message] : []);
-      sourcePosition = explicit.source && answerPosition(retained, explicit.source);
-      interpretationPosition = explicit.interpretation && answerPosition(retained, explicit.interpretation);
+      sourcePosition = replayPosition(retained, explicit.source);
+      interpretationPosition = replayPosition(retained, explicit.interpretation);
       if ((explicit.source && sourcePosition === undefined) || (explicit.interpretation && interpretationPosition === undefined)) {
-        ctx.ui.notify(explicit.intent === "more" ? NO_EXPLANATION : NO_SOURCE, "info");
-        ctx.abort();
+        refuse(explicit, ctx, "The selected handoff cannot be located reliably. Paste it into an /elivibe question.");
         return;
       }
       instructions = teachingPolicy("explicit", config.depth, methodology);
-      if (sourcePosition !== undefined) instructions += `\nThe selected source is assistant message ${sourcePosition} (count only assistant messages from the beginning of this context).`;
-      if (interpretationPosition !== undefined) instructions += `\nDeepen assistant message ${interpretationPosition} without treating the explanation as verified evidence.`;
+      if (sourcePosition !== undefined) instructions += sourcePosition > 0
+        ? `\nThe selected source is assistant message ${sourcePosition} (count only assistant messages with visible text or tool calls from the beginning of this context).`
+        : `\nTo locate the selected source, count backward from the current user request to assistant message ${-sourcePosition}, counting only messages with visible text or tool calls.`;
+      if (interpretationPosition !== undefined) instructions += interpretationPosition > 0
+        ? `\nDeepen assistant message ${interpretationPosition} without treating the explanation as verified evidence. Count only assistant messages with visible text or tool calls from the beginning of this context.`
+        : `\nCount backward from the current user request and deepen assistant message ${-interpretationPosition}, counting only messages with visible text or tool calls; do not treat the explanation as verified evidence.`;
       else if (explicit.intent === "explain") instructions += "\nExplain the selected technical handoff; do not rewrite it.";
       else instructions += "\nAnswer the requested question or focus. Use source context only insofar as it is relevant.";
       if (sourcePosition !== undefined && explicit.source?.supplemented) instructions += "\nUse the report before the eliVibe heading as the source; the following section is supplementary interpretation.";
@@ -236,8 +258,8 @@ export default function elivibe(pi: ExtensionAPI): void {
       const history = ctx.sessionManager.getBranch();
       const anchor = pending.leaf ? history.findIndex(entry => entry.id === pending?.leaf) : -1;
       if (history.slice(anchor + 1).some(entry => entry.type === "message" && authoredText(entry.message) === pending?.prompt)) {
+        refuse(pending, ctx, REQUEST_CHANGED);
         pending = undefined;
-        ctx.abort();
         return withoutMarkers;
       }
     }
@@ -250,13 +272,12 @@ export default function elivibe(pi: ExtensionAPI): void {
     if (request) {
       if (text !== request.prompt || (latest.role === "user" && latest.steering)
         || (!request.accepted && (pending !== request || marker <= latestUser))) {
-        ctx.abort();
+        refuse(request, ctx, REQUEST_CHANGED);
         return withoutMarkers;
       }
-      if ((request.source && answerPosition(event.messages, request.source) !== current.sourcePosition)
-        || (request.interpretation && answerPosition(event.messages, request.interpretation) !== current.interpretationPosition)) {
-        ctx.ui.notify("The selected handoff changed during preparation. Paste the handoff or retry /elivibe.", "info");
-        ctx.abort();
+      if ((request.source && answerPosition(event.messages, request.source, { backward: (current.sourcePosition ?? 0) < 0, end: latestUser }) !== current.sourcePosition)
+        || (request.interpretation && answerPosition(event.messages, request.interpretation, { backward: (current.interpretationPosition ?? 0) < 0, end: latestUser }) !== current.interpretationPosition)) {
+        refuse(request, ctx, "The selected handoff changed during preparation. Paste the handoff or retry /elivibe.");
         return withoutMarkers;
       }
       request.accepted = true;
@@ -373,9 +394,9 @@ export default function elivibe(pi: ExtensionAPI): void {
         notify(NO_MODEL);
         return;
       }
-      // sendUserMessage skips slash expansion, but OMP still auto-reads @path mentions.
-      if (/(?:^|[\s([{<"'`])@[^\s@]/.test(args)) {
-        notify("Paste the relevant text instead of using an @file mention in an explanation request.");
+      // sendUserMessage skips slash expansion, but OMP still expands @path and ^model mentions.
+      if (/(?:^|[\s([{<"'`])@[^\s@]|(?:^|\s)\^[^\s^]+(?=\s|$)/.test(args)) {
+        notify("Paste the relevant text instead of using @file or ^model mentions in an explanation request.");
         return;
       }
       const request: Pending = {
@@ -388,7 +409,7 @@ export default function elivibe(pi: ExtensionAPI): void {
         // Only the actual slash request is user-authored; policy is added by the host hook.
         await pi.sendUserMessage(request.prompt, { attribution: "user" });
       } catch {
-        if (pending === request && request.session === ctx.sessionManager.getSessionId() && !request.accepted) {
+        if (pending === request && request.session === ctx.sessionManager.getSessionId() && !request.accepted && !request.refused) {
           notify("OMP could not start the explanation. Check its model with /model, or retry /elivibe.");
         }
       } finally {
