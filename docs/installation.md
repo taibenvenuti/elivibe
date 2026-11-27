@@ -167,7 +167,7 @@ test -f "$source/SKILL.md" &&
   cp -R "$source/." "$destination/elivibe/"
 ```
 
-The second `mkdir` stops if that destination already exists. Check for an existing user-scope or plugin copy too; Codex and OMP can discover the same `.agents/skills/` directory. Open a fresh session from this project and [try an explanation](#try-your-first-explanation); for OMP you can also check discovery with `omp skill list --json`.
+The second `mkdir` stops if that destination already exists. Check other discovery paths before adding a copy: Codex and OMP can share `.agents/skills/`, and OMP can also discover project `.claude/skills/` and Claude plugin resources. Different versions in those locations can produce a second, namespaced entry. Open a fresh session from this project and [try an explanation](#try-your-first-explanation); in OMP, `omp skill list --json` shows the path and source of each discovered skill.
 
 To disable or remove the standalone skill, move just the copied `elivibe/` directory outside every skill discovery path or delete just that copy. To update, keep the previous copy outside discovery and install the new folder; reverse that swap to roll back or restore it. Start a fresh session after each change. None of these steps requires editing any other skill.
 

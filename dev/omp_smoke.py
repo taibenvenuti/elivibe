@@ -193,7 +193,12 @@ def isolate(args):
         raise SystemExit(
             "The OMP smoke requires Linux bubblewrap and the pinned OMP binary."
         )
-    for path in (args.archive, args.npm_archive, args.skill_archive, args.source_archive):
+    for path in (
+        args.archive,
+        args.npm_archive,
+        args.skill_archive,
+        args.source_archive,
+    ):
         if not path.is_file():
             raise SystemExit(f"Missing prebuilt archive: {path}")
     addons = []

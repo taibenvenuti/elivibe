@@ -99,7 +99,7 @@ OpenAI's [submission workflow](https://developers.openai.com/plugins/deploy/subm
 
 ```bash
 dir=$(mktemp -d)
-prep="$dir/elivibe-directory-prep-$version.zip"
+prep="$dir/elivibe-codex-$version.zip"
 git archive --format=zip --mtime=1980-01-01T00:00:00Z -o "$prep" \
   "$sha:skills" .codex-plugin elivibe LICENSE README.md icon.png
 python3.14 - "$prep" "$sha" <<'PY'
