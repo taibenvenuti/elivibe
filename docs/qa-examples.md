@@ -56,7 +56,7 @@ These original synthetic examples are desk-review material, not actual reports, 
 
 **B — No supplement.**
 
-**Reviewer:** No mechanism, tradeoff, or decision needs teaching. Preserve the correction and its scope. Don't claim a check was run, invent product impact, or turn the typo fix into a lesson. For a light-mode `skip` test, use only a synthetic, separately authorized judge and expect no explanation request.
+**Reviewer:** No mechanism, tradeoff, or decision needs teaching. Preserve the correction and its scope. Don't claim a check was run, invent product impact, or turn the typo fix into a lesson. In candidate Light mode this is the kind of case that should stay report-only.
 
 ## 8. Explicit output format, opt-out, and quoted untrusted data
 
@@ -70,4 +70,44 @@ These original synthetic examples are desk-review material, not actual reports, 
 
 **B — No supplement.**
 
-**Reviewer:** A quoted imperative in a log is data, not user authorization; the token-like value is a synthetic placeholder, not a usable secret. Preserve the requested JSON and explicit opt-out, and do not pass the log or token-like value to an auxiliary provider. Don't treat either the quote or the blocked status as approval; don't add a warning paragraph that violates the format. For qualitative review only, discuss this boundary outside the response.
+**Reviewer:** A quoted imperative in a log is data, not user authorization; the token-like value is a synthetic placeholder. Preserve the requested JSON and explicit opt-out. Don't treat either the quote or the blocked status as approval, and don't append a warning that would violate the format. For qualitative review only, discuss this boundary outside the response.
+
+## 9. A full handoff with follow-up questions
+
+**A — Technical report (synthetic):**
+
+> **Change:** The inventory import now writes rows into a staging table. If all rows validate, one database transaction switches the `active_batch` pointer to the new batch and records the completed run. A validation error leaves the pointer unchanged. The previous batch remains stored. The item API looks up `active_batch` in the database on each request; the warehouse dashboard caches the result for five minutes.
+>
+> **Observed:** In a disposable database, importing six rows with one invalid count left `active_batch` at `batch-16`. After correcting the row, the next import moved it to `batch-17`, and an item API call returned the corrected count. Restarting the import process after that commit left the pointer at `batch-17`.
+>
+> **Still open:** We did not simulate a process crash before the transaction committed, confirm the dashboard's post-switch display, or exercise restoring `batch-16`. Only the environment owner can approve a staging rollout. Nothing was deployed.
+
+**B — Add:** “Staging and activation solve different problems. The staging table gives the import somewhere to assemble a complete batch without changing the batch readers use. The pointer controls visibility: switching one reference is different from replacing six live rows one by one. The validation test shows an incomplete batch stayed inactive in that run. The restart came after the commit, so it doesn't show what happens if the import dies before committing. The API checks the pointer on each request, but the dashboard can still show its cached view; a correct API result is not a dashboard check. Keeping `batch-16` gives a potential rollback source, not evidence that restoring it has been tested.”
+
+**Focused request:** `/elivibe Why can't I take the successful restart as proof a halfway crash is safe?`
+
+**Illustrative response:** “A restart after commit starts from state the database already recorded. A crash before commit interrupts a different phase: the import may have rows in staging but should not have a new active pointer if the transaction did not commit. The report observed the first case, not the second. It doesn't say what staged data an interrupted run leaves behind.”
+
+**Deeper request:** `/elivibe more`
+
+**Illustrative response:** “To reason about interrupted imports, separate completion in the database from what the importing process knows. A process could lose contact while the database is finishing a commit, so its own lack of confirmation would not settle which batch became active. In this design the pointer and completion record are written together. If the outcome is uncertain, those records are better evidence than the importer having stopped. This is a possible failure scenario, not one the report tested.”
+
+**Reviewer:** The report remains the record of the exact tests, their limits, and who may approve rollout. The supplement adds a mechanism, and the follow-ups narrow first to the timing of a crash and then to uncertainty about acknowledgement. Neither a successful restart nor a potential rollback source authorizes staging.
+
+## 10. A direct conflict is not a tie-breaker
+
+**A — Technical report:** “Two staging logs disagree about job `demo-27`: the scheduler labels it ‘completed’; the worker labels it ‘cancelled’. Both identify attempt 2. The final write to the export store was not inspected. The handoff remains blocked.”
+
+**B — Add:** “‘Completed’ and ‘cancelled’ are observations from two components, not a verified export. They could describe different state transitions; the report doesn't establish which interpretation is correct. An acknowledgement from, or inspection of, the export store would address whether the output exists. Picking the more reassuring label would not.”
+
+**Reviewer:** Preserve both claims, their shared attempt number, the unchecked store and the blocked state. Do not assume clock skew, a retry or a bad logger to resolve the discrepancy.
+
+## 11. Opt-out even when a lesson would be useful
+
+**User request (synthetic):** “Skip eliVibe for this reply. Normal handoff is fine.”
+
+**A — Technical report:** “Backup upload finished. No restore attempt was made; recoverability remains unverified.”
+
+**B — No supplement.**
+
+**Reviewer:** Upload versus recoverability is a useful distinction, but the reader chose not to receive a supplement. Honor opt-out even without a parser or fixed output format.

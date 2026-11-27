@@ -2,7 +2,7 @@
 set -eu
 cd "$(dirname "$0")/.."
 
-python3.14 tools/check_dev.py
+python3.14 dev/check_dev.py
 
 if [ "${1-}" = --setup ]; then
     shift
@@ -24,7 +24,7 @@ if [ "${1-}" = --setup ]; then
 fi
 
 if [ "$#" -ne 0 ]; then
-    echo 'usage: sh tools/check [--setup]' >&2
+    echo 'usage: sh dev/check [--setup]' >&2
     exit 2
 fi
 
@@ -33,15 +33,15 @@ if [ -x .venv/bin/actionlint ]; then
     actionlint=.venv/bin/actionlint
 fi
 if ! "$actionlint" -version | grep -qx '1.7.12'; then
-    echo 'Expected actionlint 1.7.12; run sh tools/check --setup or install it on PATH.' >&2
+    echo 'Expected actionlint 1.7.12; run sh dev/check --setup or install it on PATH.' >&2
     exit 1
 fi
 "$actionlint" -no-color -shellcheck='' -pyflakes='' .github/workflows/*.yml .github/release-workflow.yml
 
-set -- tools/package.py tools/omp_smoke.py tools/check_dev.py tools/check_dev_test.py tests/product
+set -- dev/package.py dev/omp_smoke.py dev/check_dev.py dev/check_dev_test.py tests/product
 uv run --no-sync ruff format --check "$@"
 uv run --no-sync ruff check "$@"
-uv run --no-sync python -m pytest -q tests/product tools/check_dev_test.py
+uv run --no-sync python -m pytest -q tests/product dev/check_dev_test.py
 node node_modules/typescript/bin/tsc --project tsconfig.json
 node --test tests/plugin/*.test.ts
-node tools/release-rules.mjs
+node dev/release-rules.mjs

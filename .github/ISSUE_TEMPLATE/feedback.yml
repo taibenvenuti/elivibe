@@ -1,0 +1,27 @@
+name: eliVibe feedback
+description: Report an install or command problem, or suggest a small improvement.
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This issue is public. Use synthetic examples and omit credentials, private reports, and raw transcripts. For suspected vulnerabilities or data exposure, [report privately](https://github.com/taibenvenuti/elivibe/security/advisories/new) instead.
+  - type: input
+    id: environment
+    attributes:
+      label: Version and environment
+      description: Include the eliVibe release or commit, host/version, and operating system.
+      placeholder: v0.1.0 standalone skill, OMP 19.2.1, Linux x64
+    validations:
+      required: true
+  - type: textarea
+    id: feedback
+    attributes:
+      label: What were you trying to do?
+      description: Include the exact command or mode if relevant, what you expected, and what happened. For a suggestion, say what would make the step clearer.
+    validations:
+      required: true
+  - type: textarea
+    id: synthetic-example
+    attributes:
+      label: Small synthetic example (optional)
+      description: A minimal reproduction or a made-up handoff is enough. Say what a useful supplement would clarify without changing the report.

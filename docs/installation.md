@@ -1,30 +1,37 @@
 # Install, update, roll back, or remove
 
-## Start here
+## Try the published release
 
-For an existing report, use `/skill:elivibe` in the ordinary Oh My Pi (OMP) conversation. With the native plugin, use `/elivibe full` **before** your next task to ask for both layers in the same answer. These paths use OMP's normal routing and protections, and an ordinary turn may send more conversation context than the report alone.
+[v0.1.0](https://github.com/taibenvenuti/elivibe/releases/tag/v0.1.0) is the published version. The easiest first try is its standalone skill: it needs OMP, an already configured model, and an unzip tool, but no plugin or build tools.
 
-Manual is the safe idle default: it sends no extra eliVibe model request unless you explicitly request and authorize one. Manual explanations and Light automation are experimental and bypass ordinary OMP protection and provider hooks. A cloud route requires positive OMP proof that it bypasses both proxy layers; empty proxy environment variables aren't proof. The default TypeSafe Jev judge is usually unavailable, and a local explainer does not make the judge eligible. Read [privacy and controls](privacy.md) before using either side-request path.
+1. Download `elivibe-0.1.0.zip` and `SHA256SUMS` from the same [GitHub release](https://github.com/taibenvenuti/elivibe/releases/tag/v0.1.0) into one directory. From that directory on Linux/WSL:
 
-The native plugin was exercised with synthetic responses on OMP 19.2.1 on Linux x64 (WSL2). No live-provider compatibility has been verified. See [compatibility](compatibility.md). No published bundle is linked here; build from source or install only the skill.
+   ```sh
+   grep -F '  elivibe-0.1.0.zip' SHA256SUMS | sha256sum -c -
+   ```
 
-## Native source install
+   Continue only if this prints `elivibe-0.1.0.zip: OK`. A checksum checks that the download matches the trusted manifest; it doesn't establish trust in a manifest from an unknown source.
+2. Extract the ZIP into a fresh directory. In the project where you use OMP, [copy just `elivibe/SKILL.md` into the project's skill directory](#standalone-skill).
+3. Start OMP from that project with skill commands enabled, then [try the example handoff](#try-your-first-explanation) using `/skill:elivibe`.
 
-From the root of a clean checkout at a reviewed commit, use a POSIX shell on Linux/WSL with Git, `tar`, `sha256sum`, Python 3.14 and OMP 19.2.1 on `PATH`. Packaging uses only the Python standard library. These commands build and verify the local archives without publishing them:
+If you want the published **native plugin** instead, download `elivibe-omp-0.1.0.tar.gz` and use the [tagged v0.1.0 installation and verification guide](https://github.com/taibenvenuti/elivibe/blob/v0.1.0/docs/installation.md#verify-and-link-the-omp-archive). Its Manual and Light behavior is different from this checkout; see the [tagged privacy and approvals guide](https://github.com/taibenvenuti/elivibe/blob/v0.1.0/docs/privacy.md). The native plugin includes the skill; install only one copy.
 
-```sh
-version=0.1.0
-commit=$(git rev-parse HEAD) &&
-  output=$(mktemp -d) &&
-  python3.14 tools/package.py build --output-dir "$output" --version "$version" --commit "$commit" &&
-  python3.14 tools/package.py verify --output-dir "$output" --version "$version" --commit "$commit"
-```
+## Install the OMP candidate
 
-Only continue if verification succeeds. Perform [verification and linking](#verify-and-link-the-omp-archive) in the same shell. OMP loads the bundled TypeScript; installing an already-built bundle does not need Python, uv or a separate Node install.
+Use OMP 19.2.1 in the intended profile. Pick **one** source. The plugin bundles the skill. A GitHub ref, an npm package and a release archive become available independently; check [status](status.md) first.
 
-## Verify and link the OMP archive
+| Source | OMP command | When to run |
+|---|---|---|
+| GitHub | `omp plugin install github:taibenvenuti/elivibe#<reviewed-full-sha>` | **Pending push and verification.** Replace `<reviewed-full-sha>` with the confirmed full commit SHA (no angle brackets) once that exact GitHub commit is available and the route is verified. Don't use an old tag or a moving branch in its place. |
+| npm | `omp plugin install elivibe@0.2.0` | **Pending separate registry publication and verification.** Use only when the exact package and version resolve from the intended registry and match the reviewed release. A GitHub release does not publish to npm. |
+| Local checkout | `omp plugin link "$PWD"` | Available for local review now. Run from the root of a clean checkout at the reviewed candidate commit. OMP loads the files directly: keep the directory intact and unchanged while linked. |
+| Verified native archive | `omp plugin link /absolute/path/to/extracted/elivibe-omp` | Offline alternative. Use the [published v0.1.0 archive](#try-the-published-release) for that version. Use the equivalent [archive verification steps](#verify-and-link-an-offline-archive) for any trusted candidate archive you already have. |
 
-The source build already set `version` and `output`. If you're installing an already-built bundle from a trusted source, set them to its exact version and the absolute directory containing the archive and its trusted `SHA256SUMS`. A checksum detects a mismatch, but does not authenticate a download from an untrusted source. The commands use Linux `sha256sum` and `tar` and extract into a new directory.
+Consumers don't need Python, uv or a separate Node install. By default OMP registers plugins in the active user plugin directory, which may be shared by profiles. If you already have eliVibe linked, [migrate the existing install](#move-from-a-v010-linked-install) instead of forcing a replacement.
+
+## Verify and link an offline archive
+
+For a trusted candidate artifact, set `version` to the exact version and `output` to the absolute directory containing `elivibe-omp-$version.tar.gz` and its trusted `SHA256SUMS`. Verify the archive before extraction (a mismatch means stop):
 
 ```sh
 archive="elivibe-omp-$version.tar.gz"
@@ -39,38 +46,61 @@ archive="elivibe-omp-$version.tar.gz"
   omp plugin link "$install_dir/elivibe-omp"
 ```
 
-The native archive contains the adapter, core, Jev transport, canonical skill, MIT license, OMP manifest and relative `skills` discovery link. Use an extractor that preserves the link. OMP links to the extracted directory, so keep it intact while it is registered.
+Keep the extracted directory intact while linked. Don't pass this tarball to `omp plugin link` or `omp plugin install`. If preparing archives for review, see the [release build instructions](release.md#version-and-contents).
 
-By default `omp plugin link` registers the package in the active user plugin directory. Profiles that share this directory share the registration. A profile isn't a sandbox; use [isolated native smoke](development.md#native-omp-smoke) to test without touching your normal profile or sending live requests.
+## Check the installation
 
-Start a fresh OMP session in the intended profile and your project. `omp plugin list --json` should list `elivibe` at the expected version. In a new session, `/elivibe status` should report `manual`, `/elivibe model` should report `auto`, and `/skill:elivibe` should be offered. Those checks don't authorize a side request.
+1. In your **shell**, run `omp plugin list --json`. Look for `elivibe` at version `0.2.0` and check the source against the pin or local path you selected. Use `omp skill list --json` from the project root to check skill discovery. If you also have a standalone copy, move only that copy outside discovery to keep it for rollback.
+2. In a **new interactive OMP session** in that profile and project, enter `/elivibe status` and `/elivibe help`. For the v0.2.0 candidate, expect `manual` mode and usage for `more` and focused questions. `/elivibe status` checks adapter settings, not the installed version; these candidate expectations do not apply to a standalone install or the published v0.1.0 adapter.
 
-If you had a standalone copy, move only that copy outside skill discovery and keep it for rollback. Don't delete a locally edited copy, the canonical file in this checkout, or another skill. The native plugin supplies `/skill:elivibe` without a second installation.
+A profile is not a sandbox. Use the [native smoke procedure](development.md#native-omp-smoke) for contributor checks.
+
+## Try your first explanation
+
+In an idle interactive OMP session with a configured model, paste this as a normal chat message. Let OMP return the handoff as an **assistant reply** before invoking eliVibe:
+
+```text
+Return a short technical handoff for a fictional API that stages an inventory batch and activates it in one database transaction. State what that guarantees and one failure case still untested. Don't use tools, edit files, or claim you ran checks.
+```
+
+- **v0.2.0 native candidate:** enter `/elivibe` on its own.
+- **v0.1.0 standalone skill:** enter `/skill:elivibe Why does the transaction matter?`. This also works for the candidate's standalone skill. `/skill:elivibe` needs OMP's skill commands enabled.
+
+If OMP is still working and the command doesn't start a response, wait until the session is idle and try again. The explanation should be distinct from the unchanged handoff. The report is the source account, not independent verification. These are ordinary OMP turns; use only material you can share through your active OMP setup.
+
+In the candidate, follow up with `/elivibe more` or `/elivibe What wouldn't that transaction guarantee?`. For a future task, use `/elivibe light` to explain selectively or `/elivibe full` to request explanations with meaningful technical handoffs. The selected depth applies in both modes. See the [command table](../README.md#candidate-commands).
+
+## Move from a v0.1.0 linked install
+
+1. In the profile that owns the existing link, use `omp plugin list --json` to record the current registration and keep the absolute path to the verified v0.1.0 extracted `elivibe-omp` directory. Do not overwrite it.
+2. Close the old session. In the same profile, unregister the old link with `omp plugin uninstall elivibe` before installing from your [chosen candidate source](#install-the-omp-candidate). Don't use `--force` to move away from a link to a locally edited path. This leaves the old files available for rollback. Open a fresh session to check the new source, version and commands.
+3. Use `/elivibe status` and set the mode/depth you want. `depth adaptive` still works as `depth auto`. `/elivibe model`, `/elivibe judge`, `/elivibe consent`, and `/elivibe judge-consent` now show a migration notice instead of setting anything. The candidate does not use old route grants, an independent model, or a separate judge. Select the ordinary model through OMP itself. Manual explanations now use the ordinary conversation and can include more context than the source report alone.
 
 ## Update, roll back, or uninstall
 
-- **Update:** verify the new artifact, extract it to a new directory and link it as above using the same profile. Keep the previous verified directory until the new version works. Open a fresh session and check the registered version and commands. Don't use `omp plugin upgrade` for a locally linked package.
-- **Roll back:** `omp plugin link /absolute/path/to/previous/elivibe-omp`, then open a fresh session and check the previous version. If a failed installation left no registration, relink the known-good extracted directory. Don't overwrite a linked directory in place.
-- **Uninstall:** `omp plugin uninstall elivibe` in the same profile, then start a fresh session. This unregisters the adapter and bundled skill; it doesn't delete your extracted copy or remove unrelated registrations. If you want skill-only use, restore your former standalone copy after uninstalling. Retire extracted directories only once no profile links to them.
+- **GitHub source:** record the installed full SHA. Uninstall the current registration, then install with the next verified full SHA. To roll back, reinstall the previous verified SHA the same way. Keep the previous pin before switching; don't substitute a moving branch.
+- **npm:** once exact versions are actually published and verified, use `omp plugin install elivibe@<exact-version> --force` (replace the placeholder) to update an existing **registry** install, or specify the previous exact registry version to roll back. Use `--force` only for the managed registry registration, not to switch from a checkout or archive link.
+- **Checkout or offline archive:** keep the previous reviewed directory. Unregister the current link and `omp plugin link` the new reviewed directory, or link the previous directory to roll back. Don't overwrite a linked path or use `omp plugin upgrade` for a local link. A rollback to v0.1.0 still has its old side-request paths.
+- **Uninstall:** `omp plugin uninstall elivibe` in the same profile, then open a fresh session. This unregisters the adapter and bundled skill. An unlinked checkout or extracted archive is still yours to keep. Restore a former standalone copy only if you want skill-only use.
+
+After updating or rolling back, [check the installed version and source](#check-the-installation) in a fresh session.
 
 ## Standalone skill
 
-This checkout already discovers the [canonical skill](../skill/elivibe/SKILL.md). To install it in a different OMP project, run the following from that project's root, replacing the source path. A verified skill ZIP can supply the same `elivibe/SKILL.md`; verify its entry in the trusted `SHA256SUMS` and extract it to a fresh directory first. Only one Markdown file goes into the skill directory; Python, Node and the plugin are not needed.
+Use the extracted `elivibe/SKILL.md` from the verified ZIP, or the [canonical `skills/elivibe/SKILL.md`](../skills/elivibe/SKILL.md) from a reviewed candidate checkout. Run this from your OMP project's root, replacing the source path:
 
 ```sh
 mkdir -p .agents/skills &&
   mkdir .agents/skills/elivibe &&
-  cp /path/to/checkout/skill/elivibe/SKILL.md .agents/skills/elivibe/
+  cp /absolute/path/to/elivibe/SKILL.md .agents/skills/elivibe/
 ```
 
-If you redistribute the standalone file, include the project's copyright and [MIT license text](../LICENSE) and any applicable notices alongside it, outside the runtime skill directory. An SPDX identifier alone is not the license text.
+The second `mkdir` stops if an installation already exists. Do not copy the skill beside a native install. From the project root, run `omp skill list --json`, then start a fresh session. Use `/skill:elivibe` with the report already in the conversation or with an explicit question. In the candidate, the skill is not advertised for automatic model invocation; native modes require the plugin.
 
-`mkdir` stops the installation if a directory or symlink is already there. Run `omp skill list --json` from the project root and start a fresh session. Use `/skill:elivibe Explain why that check was insufficient.` after a report, or invoke it with a coding task to request both layers. This is an ordinary OMP turn, not isolated inference. OMP advertises skills to the active model, which can miss or overselect them; use explicit invocation when it matters.
-
-To update or roll back a skill-only install, save the old file outside discovery and replace only that installation's file with the reviewed new or previous version. To remove it, remove your copied `SKILL.md` and its now-empty `elivibe` directory. In this checkout, no copy was needed: remove or move only the discovery symlink if you want to disable discovery locally, not its target. Remove any reminder you personally added and start a fresh session.
+To update or roll back a skill-only install, save the old file outside discovery and replace only that installation's file. To remove it, remove your copied `SKILL.md` and its now-empty `elivibe` directory, then start a fresh session. If you redistribute the standalone file, include the copyright and [MIT license text](../LICENSE) outside the runtime skill directory.
 
 ## Troubleshooting
 
-- **Command missing or duplicated:** check the profile and `omp plugin list --json`; check `omp skill list --json` for the source of the skill, a second copy, disabled discovery or a missing archive symlink. Restart OMP after registry or file changes. Don't delete another registration to make this one work.
-- **No model or side request refused:** check `/elivibe status` and `/elivibe model`. A successful install doesn't make a model or route eligible. If the active route or the separate judge is refused, use `/skill:elivibe` for the current report or `/elivibe full` before the next task, subject to your ordinary OMP policy. See [authorization and refusals](privacy.md#approvals-and-refusals).
-- **Checksum, link, or version mismatch:** stop. Verify the expected commit/version and bundle, or relink the last reviewed version. Do not bypass the checksum or register an uncertain directory.
+- **Command missing or duplicated:** in the shell, check the active profile with `omp plugin list --json` and skill discovery with `omp skill list --json`. Look for a broken package link, disabled skill discovery or skill commands, or a second copy. Restart OMP after changing a registration or file.
+- **No explanation:** Manual and Off do not add one automatically; use `/elivibe <question>` or `/skill:elivibe`. For a report that's no longer in context, quote its relevant non-sensitive evidence; the candidate does not retrieve it from another session. An output-only request or opt-out takes precedence over automatic explanation.
+- **Unexpected version or checksum:** stop. Compare the intended version, verified bundle, and linked path; relink the previous verified archive if needed.

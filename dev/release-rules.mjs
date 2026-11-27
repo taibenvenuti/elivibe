@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { Writable } from "node:stream";
 import semanticRelease from "semantic-release";
+import { verifyRelease } from "../.github/release-publish.mjs";
 import { releasePolicy } from "./release-policy.mjs";
 
 const releaseGate = fileURLToPath(new URL("../.github/release-publish.mjs", import.meta.url));
@@ -43,6 +44,8 @@ try {
     git("init", "-q", "--initial-branch=main", "--template=");
     git("config", "user.name", "Fixture");
     git("config", "user.email", "fixture@example.invalid");
+    writeFileSync(join(cwd, "package.json"), JSON.stringify({ version: expected ?? "0.1.0" }));
+    git("add", "package.json");
     git("commit", "--allow-empty", "-qm", "chore: baseline");
     if (messages.includes("git-revert")) {
       writeFileSync(join(cwd, "revert-fixture"), "original fix\n");
@@ -90,6 +93,13 @@ try {
       }
       if (index === 1) {
         await assert.rejects(run("0.1.2"), /did not select the approved version and commit/);
+        await assert.rejects(
+          verifyRelease(
+            { approvedSha: sha, approvedVersion: "0.1.2" },
+            { cwd, env, nextRelease: { version: "0.1.2", gitTag: "v0.1.2", gitHead: sha } },
+          ),
+          /does not match the committed package.json/,
+        );
       }
       const tags = tagged ? "v0.1.0" : "";
       assert.equal(git("tag", "--list"), tags);

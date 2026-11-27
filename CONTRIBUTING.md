@@ -1,10 +1,14 @@
 # Contributing
 
-eliVibe is experimental. Useful contributions include small correctness fixes, focused synthetic regressions, clearer teaching examples, and reproducible compatibility findings. Start with [the current status](docs/status.md), [local setup and checks](docs/development.md), and [repository guidance](AGENTS.md). You don't need provider credentials or access to your normal OMP profile to work on the product.
+Start with one concrete change:
 
-1. Keep the change scoped. Use the canonical [portable skill](skill/elivibe/SKILL.md) for teaching guidance, the portable core for product decisions, and the native adapter for OMP behavior. A supplement must preserve the report and its evidence rather than replace it.
-2. Run the relevant [product checks](docs/development.md) and describe what they verified. For changes to native behavior, use the documented isolated smoke. For teaching changes, use [constructed examples and desk review](docs/product-qa.md). Don't present these as live-provider runs or research findings.
-3. Update the relevant [installation](docs/installation.md), [compatibility](docs/compatibility.md), or [privacy](docs/privacy.md) docs if behavior changes. Follow [Conventional Commits and the release policy](docs/release.md) for commit messages and squash PR titles (for example, `fix(omp): preserve the source handoff on refusal`). Follow the repository's signed-commit practice without changing identity or signing trust to pass a check.
-4. In a pull request, explain why the change matters, what you checked, and what remains unverified. Describe compatibility, privacy, or release effects rather than assuming a successful local check permits publishing. Follow the [community standards](CODE_OF_CONDUCT.md).
+- **Fix a confusing step.** Tell us which [install](docs/installation.md) or command step you followed, what happened, and what would have made the next step clear.
+- **Improve an example.** Add an original synthetic handoff and show the smallest useful supplement. Point to one distinction it teaches and one claim it must not make. See [constructed examples](docs/qa-examples.md).
+- **Cover a regression.** Add a synthetic case for one command, opt-out, lifecycle or provenance edge. Keep the report and its evidence intact.
+- **Check a host.** Pick a gap in [compatibility](docs/compatibility.md), use a disposable project and synthetic input, and record the host version and what you actually observed.
 
-Use original synthetic fixtures or material explicitly cleared for contribution. Do not commit credentials, personal or customer data, raw transcripts, or restricted source. If rights are unclear, leave the material out and raise the question without attaching it. Don't put vulnerabilities or possible data exposures in a public PR; follow the [security reporting guidance](SECURITY.md).
+Use **eliVibe feedback** in the [GitHub issue chooser](https://github.com/taibenvenuti/elivibe/issues/new/choose). If the form is not on the default branch yet, use a plain issue with the same details: eliVibe version or commit, host/version, exact command or mode, expected behavior and what happened. No credentials or normal profile are needed to work on the product. Use [private vulnerability reporting](SECURITY.md), not an issue or PR, for vulnerabilities or suspected data exposure.
+
+For a PR, start with [repository guidance](AGENTS.md) and [development setup and focused checks](docs/development.md). Put changes to teaching guidance in the [canonical skill](skills/elivibe/SKILL.md); keep host integration in the OMP adapter. Update the affected documentation. Use a Conventional Commit squash PR title (for example, `fix(omp): preserve the source handoff`), and follow the [release policy](docs/release.md) and [community standards](CODE_OF_CONDUCT.md).
+
+Describe what changed, the relevant checks you ran, what they establish, and what remains unverified. Separate synthetic evidence from live behavior. Use original synthetic fixtures or material you have clear permission to contribute; leave out credentials, customer data, restricted source, and raw reports or transcripts.

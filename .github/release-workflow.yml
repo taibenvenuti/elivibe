@@ -8,7 +8,7 @@ on:
         type: string
         required: true
       expected_version:
-        description: Approved stable version after v0.1.0 bootstrap
+        description: Approved stable version committed in package.json
         type: string
         required: true
       dry_run:
@@ -63,8 +63,8 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '24.21.0'
-      - run: sh tools/check --setup
-      # tools/check runs the disposable release-rule fixtures as part of its normal gates.
+      - run: sh dev/check --setup
+      # dev/check runs the disposable release-rule fixtures as part of its normal gates.
       - name: Rebuild and verify licensed assets for the approved revision
         env:
           ELIVIBE_SHA: ${{ inputs.trusted_sha }}
@@ -81,7 +81,7 @@ jobs:
           test "$ELIVIBE_APPROVAL" = "$operation:$ELIVIBE_SHA:$ELIVIBE_EXPECTED_VERSION:$ELIVIBE_LICENSE_ID"
           test -n "$ELIVIBE_LICENSE_ID"
           git merge-base --is-ancestor 'refs/tags/v0.1.0^{commit}' "$ELIVIBE_SHA"
-          python tools/package.py rehearse --version "$ELIVIBE_EXPECTED_VERSION" --commit "$ELIVIBE_SHA" --license-id "$ELIVIBE_LICENSE_ID"
+          python dev/package.py rehearse --version "$ELIVIBE_EXPECTED_VERSION" --commit "$ELIVIBE_SHA" --license-id "$ELIVIBE_LICENSE_ID"
   release:
     needs: review
     if: github.ref == 'refs/heads/main' && github.sha == inputs.trusted_sha

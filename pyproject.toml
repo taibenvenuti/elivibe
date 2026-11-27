@@ -1,7 +1,7 @@
 [project]
-name = "elivibe-eval"
-# Developer-only virtual project metadata; distribution versions are Git tags.
-version = "0.0.0"
+name = "elivibe"
+# Developer-only virtual project; no Python distribution is built.
+version = "0.2.0"
 requires-python = ">=3.14,<3.15"
 dependencies = []
 

@@ -10,7 +10,7 @@ profiles=/sys/kernel/security/apparmor/profiles
 check_namespace() {
   "${probe[@]}" /usr/bin/true || return
   echo 'Namespace setup succeeded; checking the enforcing child stack and isolation.'
-  "${probe[@]}" /usr/bin/python3 -IB - --verify-hosted-namespace "$(readlink /proc/self/ns/net)" < tools/omp_smoke.py
+  "${probe[@]}" /usr/bin/python3 -IB - --verify-hosted-namespace "$(readlink /proc/self/ns/net)" < dev/omp_smoke.py
 }
 started=$(date --iso-8601=seconds)
 if failure=$(check_namespace 2>&1); then

@@ -13,9 +13,7 @@
   },
   "include": [
     "core/**/*.ts",
-    "providers/**/*.ts",
     "adapters/**/*.ts",
-    "tests/plugin/core.test.ts",
-    "tests/plugin/jev.test.ts"
+    "tests/plugin/*.test.ts"
   ]
 }
