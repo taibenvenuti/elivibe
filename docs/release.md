@@ -100,7 +100,7 @@ OpenAI's [submission workflow](https://developers.openai.com/plugins/deploy/subm
 ```bash
 dir=$(mktemp -d)
 prep="$dir/elivibe-codex-$version.zip"
-git archive --format=zip --mtime=1980-01-01T00:00:00Z -o "$prep" \
+TZ=UTC git archive --format=zip --mtime=1980-01-01T00:00:00Z -o "$prep" \
   "$sha:skills" .codex-plugin elivibe LICENSE README.md icon.png
 python3.14 - "$prep" "$sha" <<'PY'
 import subprocess
@@ -113,6 +113,7 @@ expected = sorted([
 ])
 with ZipFile(sys.argv[1]) as archive:
     assert sorted(item.filename for item in archive.infolist() if not item.is_dir()) == expected
+    assert all(item.date_time == (1980, 1, 1, 0, 0, 0) for item in archive.infolist())
     for name in expected:
         assert archive.read(name) == subprocess.check_output(["git", "show", f"{sys.argv[2]}:skills/{name}"])
 PY

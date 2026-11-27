@@ -1,6 +1,6 @@
 # What reaches the model?
 
-**eliVibe uses your ordinary host conversation, not a report-only request.** OMP v1.0.0 changed the disclosure contract for Manual and Light in the [published v0.1.0](https://github.com/taibenvenuti/elivibe/blob/v0.1.0/docs/privacy.md). Old isolated-route approvals are not authority for the current behavior. If the conversation is not suitable for the active host model or your organization's policy, do not invoke eliVibe on it.
+**eliVibe uses your ordinary host conversation, not a report-only request.** In Oh My Pi (OMP), v1.0.0 changed what Manual and Light can disclose compared with [v0.1.0](https://github.com/taibenvenuti/elivibe/blob/v0.1.0/docs/privacy.md). Old isolated-route approvals are not authority for the current behavior. If the conversation is not suitable for the active host model or your organization's policy, do not invoke eliVibe on it.
 
 | Action | Disclosure and effect |
 |---|---|

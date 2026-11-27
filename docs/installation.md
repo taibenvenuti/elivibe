@@ -76,8 +76,18 @@ Keep the extracted directory intact while linked. Don't pass this tarball to `om
 
 ## Check the installation
 
-1. In your **shell**, run `omp plugin list --json`. Look for exactly one enabled `elivibe` with the expected version (for the published commands above, `1.0.0`) and path. A linked directory has a linked registration; both GitHub and registry installs can appear in the `npm` group. The list is not proof of the source URL or resolved GitHub SHA: keep your exact install command and pin. If you need to distinguish package-manager sources, check only the `dependencies.elivibe` entry in the plugin manager's `package.json` (at the plugin root above `node_modules` in the listed path), not the installed plugin's own manifest. Run `omp skill list --json` from the project root to check skill discovery. Move any standalone duplicate outside discovery to keep it for rollback.
+1. In your **shell**, run `omp plugin list --json`. Look for exactly one enabled `elivibe` with the expected version and path. The list does **not** identify the source: links, npm and GitHub can all appear in the `npm` group. Keep your install command and pin. Run `omp skill list --json` from the project root; move any standalone duplicate outside discovery to keep it for rollback.
 2. In a **new interactive OMP session** in that profile and project, enter `/elivibe status` and `/elivibe help`. With default settings, expect `manual` mode and usage for `more` and focused questions. `/elivibe status` checks adapter settings, not the installed version. These expectations do not apply to a standalone install or the v0.1.0 adapter.
+
+Before updating, look at `dependencies.elivibe` in the **plugin manager's** `package.json` (above `node_modules` in the listed path), not the installed plugin's manifest. In the tested installs:
+
+| Source | What identifies it |
+|---|---|
+| npm | A version or range such as `1.0.0` or `^1.0.0`. The listing gives the version actually installed. |
+| GitHub | A value such as `github:taibenvenuti/elivibe#v1.0.0`; keep this ref separately from the version shown in the listing. |
+| Linked directory | No dependency entry **and** the listed path is a symlink. On Linux/WSL, `readlink -f -- "/path/from/the/listing"` gives the actual directory to keep. |
+
+If the evidence doesn't match one of these cases, don't force a reinstall over it.
 
 A profile is not a sandbox. Use the [native smoke procedure](development.md#native-omp-smoke) for contributor checks.
 
@@ -106,13 +116,15 @@ These are ordinary host turns. Use only material you can share through your acti
 
 ## Move from a v0.1.0 linked install
 
-1. In the profile that owns the existing link, use `omp plugin list --json` to record the current registration and keep the absolute path to the verified v0.1.0 extracted `elivibe-omp` directory. Do not overwrite it.
+1. In the profile that owns the existing link, [identify its source](#check-the-installation) and record the resolved absolute path to the verified v0.1.0 extracted `elivibe-omp` directory. Do not overwrite it.
 2. Close the old session. In the same profile, unregister the old link with `omp plugin uninstall elivibe` before installing from your [chosen source](#omp-installation-sources). Don't use `--force` to move away from a link to a locally edited path. This leaves the old files available for rollback. Open a fresh session to check the new source, version and commands.
 3. Use `/elivibe status` and set the mode/depth you want. `depth adaptive` still works as `depth auto`. `/elivibe model`, `/elivibe judge`, `/elivibe consent`, and `/elivibe judge-consent` now show a migration notice instead of setting anything. Old route grants don't carry over; there is no independent model or separate judge. Select the ordinary model through OMP itself. Manual and Light no longer isolate the report; the ordinary conversation can include more context. Check the [new disclosure boundary](privacy.md) before using v1.0.0.
 
 A resumed branch keeps its saved mode and depth. In particular, a saved **Light** setting now asks the ordinary model to teach during a coding task, even without an old route grant. For explanations only on request, select `/elivibe manual` before the next task. A new branch without saved preferences defaults to Manual.
 
 ## Update, roll back, or uninstall
+
+For normal use, choose a release tag. A moving preview branch can contain different files under the **same** plugin version: a marketplace refresh or “already at the latest version” is not proof that cached plugin files match a newer commit. To review immutable skill bytes independently, use the [standalone snapshot](#standalone-skill).
 
 ### Codex plugin
 

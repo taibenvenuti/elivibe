@@ -27,7 +27,7 @@ These are **actual CLI runs on Linux x64 with scripted responses**, not a model 
 
 The fixture answers to missing-source and unverified-outcome prompts were scripted. What was checked is whether each host delivered the applicable source, focus and guidance, or sent the fresh request without a source. A skill-only explanation is an ordinary host turn; zero new skill activations on unrelated work does not mean zero requests or that earlier guidance was erased.
 
-## GitHub candidate first use
+## Historical OMP GitHub first use (before v1.0.0)
 
 At `440f0f3024253fd86f7955db4ab251364fb96cd5`, a disposable OMP 19.2.1 installation on Linux x64 fetched the actual public `github:` pin. The package manager's archive integrity and embedded full commit matched the independent public download; all 46 installed tracked files matched Git. In a loopback-only session, help/status made no model request. Manual/auto was the default. An ordinary coding turn wrote a real fixture; the original handoff stayed unchanged through bare `/elivibe` and `/elivibe more`. Explicit `/skill:elivibe` worked. Five synthetic requests total. Removal kept the fixture and the unrelated plugin. This proves the GitHub consumer path on that revision, not a new live teaching result.
 
