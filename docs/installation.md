@@ -23,11 +23,11 @@ Use OMP 19.2.1 in the intended profile. Pick **one** source. The plugin bundles 
 | Source | OMP command | When to run |
 |---|---|---|
 | GitHub | `omp plugin install github:taibenvenuti/elivibe#<reviewed-full-sha>` | **Pending push and verification.** Replace `<reviewed-full-sha>` with the confirmed full commit SHA (no angle brackets) once that exact GitHub commit is available and the route is verified. Don't use an old tag or a moving branch in its place. |
-| npm | `omp plugin install elivibe@0.2.0` | **Pending separate registry publication and verification.** Use only when the exact package and version resolve from the intended registry and match the reviewed release. A GitHub release does not publish to npm. |
+| npm | No public install command yet. | The candidate passed a local registry install, not a public one. Wait for a version linked by this project; an npm listing under the same name is not enough. See the [publication and verification procedure](release.md). |
 | Local checkout | `omp plugin link "$PWD"` | Available for local review now. Run from the root of a clean checkout at the reviewed candidate commit. OMP loads the files directly: keep the directory intact and unchanged while linked. |
 | Verified native archive | `omp plugin link /absolute/path/to/extracted/elivibe-omp` | Offline alternative. Use the [published v0.1.0 archive](#try-the-published-release) for that version. Use the equivalent [archive verification steps](#verify-and-link-an-offline-archive) for any trusted candidate archive you already have. |
 
-Consumers don't need Python, uv or a separate Node install. By default OMP registers plugins in the active user plugin directory, which may be shared by profiles. If you already have eliVibe linked, [migrate the existing install](#move-from-a-v010-linked-install) instead of forcing a replacement.
+Consumers need a working OMP installation; its standalone binary embeds the package-manager runtime. No Python, uv, separate Node or Bun install. Have Git available for a Git-source install. By default OMP registers plugins in the active user plugin directory, which may be shared by profiles. If you already have eliVibe linked, [migrate the existing install](#move-from-a-v010-linked-install) instead of forcing a replacement.
 
 ## Verify and link an offline archive
 

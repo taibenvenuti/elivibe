@@ -16,7 +16,10 @@ registry=$(mktemp -d)
 python3.14 dev/package.py rehearse --commit "$sha" --version "$version" --license-id MIT
 python3.14 dev/package.py build --commit "$sha" --version "$version" --license-id MIT --output-dir "$assets"
 python3.14 dev/package.py verify --commit "$sha" --version "$version" --license-id MIT --output-dir "$assets"
-npm pack --ignore-scripts --pack-destination "$registry"
+source_dir=$(mktemp -d)
+git archive -o "$registry/reviewed-source.tar" "$sha" &&
+  tar -xf "$registry/reviewed-source.tar" -C "$source_dir" &&
+  (cd "$source_dir" && npm pack --offline --ignore-scripts --pack-destination "$registry")
 tar -tzf "$registry/elivibe-$version.tgz"
 sha256sum "$assets"/* "$registry/elivibe-$version.tgz"
 ```
