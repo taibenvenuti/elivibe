@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, Mock
 
 import pytest
 
-from tools import omp_smoke
+from dev import omp_smoke
 
 HOST_NETNS = "net:[100]"
 HOSTED_LABEL = "bwrap//&unpriv_bwrap (enforce)"

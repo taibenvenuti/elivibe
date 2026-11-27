@@ -1,4 +1,4 @@
-// Used only by the inactive publication workflow, after a separately authorized bootstrap.
+// Used only by the inactive publication workflow for explicitly approved releases.
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { Writable } from "node:stream";
 import { fileURLToPath } from "node:url";
 import semanticRelease from "semantic-release";
-import { releasePolicy } from "../tools/release-policy.mjs";
+import { releasePolicy } from "../dev/release-policy.mjs";
 
 const sha = process.env.ELIVIBE_SHA;
 const version = process.env.ELIVIBE_EXPECTED_VERSION;
@@ -14,21 +14,28 @@ const license = process.env.ELIVIBE_LICENSE_ID;
 const repo = process.env.GITHUB_REPOSITORY;
 const token = process.env.GH_TOKEN;
 const semver = /^(?:0|[1-9][0-9]*)(?:\.(?:0|[1-9][0-9]*)){2}$/;
-const git = (...args) => execFileSync("git", args, { encoding: "utf8", stdio: "pipe" }).trim();
+const git = (...args) => execFileSync("git", ["--no-replace-objects", ...args], { encoding: "utf8", stdio: "pipe" }).trim();
 
 class ReleaseGateError extends Error {}
 
-export async function verifyRelease({ approvedSha, approvedVersion }, { nextRelease }) {
+export async function verifyRelease({ approvedSha, approvedVersion }, { cwd, env, nextRelease }) {
   if (nextRelease.version !== approvedVersion ||
       nextRelease.gitTag !== `v${approvedVersion}` || nextRelease.gitHead !== approvedSha) {
     throw new ReleaseGateError("semantic-release did not select the approved version and commit");
+  }
+  const manifest = JSON.parse(execFileSync(
+    "git", ["--no-replace-objects", "show", `${approvedSha}:package.json`],
+    { cwd, env, encoding: "utf8", stdio: "pipe" },
+  ));
+  if (manifest.version !== approvedVersion) {
+    throw new ReleaseGateError("the approved version does not match the committed package.json");
   }
 }
 
 export async function generateNotes(_options, { nextRelease }) {
   return "Built from `" + nextRelease.gitHead + "` (`" + nextRelease.gitTag + "`). " +
     "See the attached SHA256SUMS and the review record for verification limits. " +
-    "The native integration targets OMP 19.2.1; synthetic tests do not exercise live provider behavior.";
+    "The native integration targets OMP 19.2.1; synthetic tests do not verify live provider behavior.";
 }
 
 async function github(path, expected = 200) {
@@ -60,7 +67,7 @@ export async function prepare(options, { cwd }) {
   const { GH_TOKEN: _gh, GITHUB_TOKEN: _github, ...env } = process.env;
   for (const command of ["build", "verify"]) {
     try {
-      execFileSync("python", ["tools/package.py", command, ...args], { cwd, env, stdio: "pipe" });
+      execFileSync("python", ["dev/package.py", command, ...args], { cwd, env, stdio: "pipe" });
     } catch {
       throw new ReleaseGateError(`licensed package ${command} failed`);
     }

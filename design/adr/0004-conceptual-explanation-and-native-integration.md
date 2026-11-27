@@ -1,12 +1,12 @@
 # 0004 — Teach alongside the handoff; integrate activation with the host
 
-**Accepted for the experimental product.** Teach alongside the original report instead of replacing it. Keep the teaching guidance portable and use native host controls for activation and side-request authorization.
+**Historical: v0.1.0.** [ADR 0005](0005-host-managed-teaching-and-distribution.md) retains the teaching decision and supersedes the activation, transport and authorization design below. See the [tagged implementation](https://github.com/taibenvenuti/elivibe/tree/v0.1.0) for this earlier behavior.
 
 ## Why keep the report?
 
 A stopped worker is not an empty queue: one observation concerns a process, the other concerns outstanding work. A well-written report can give accurate evidence about the first without explaining why it tells us little about the second. That distinction is the teaching layer's job. It illustrates the design, not a measured comprehension or safety benefit.
 
-Keep the ordinary technical handoff visible. It is the source account, not independently verified ground truth. Add a distinct teaching supplement only when there is a concept worth explaining or the reader asks. Don't turn an illustrative mechanism into a claim about this system. Preserve explicit format instructions and opt-out. One [portable skill](../../skill/elivibe/SKILL.md) supplies the methodology; depth changes detail, not the evidence or the activation mode.
+Keep the ordinary technical handoff visible. It is the source account, not independently verified ground truth. Add a distinct teaching supplement only when there is a concept worth explaining or the reader asks. Don't turn an illustrative mechanism into a claim about this system. Preserve explicit format instructions and opt-out. One [portable skill at v0.1.0](https://github.com/taibenvenuti/elivibe/blob/v0.1.0/skill/elivibe/SKILL.md) supplies the methodology; depth changes detail, not the evidence or the activation mode.
 
 ## Why a native adapter?
 

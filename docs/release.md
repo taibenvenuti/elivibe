@@ -1,75 +1,186 @@
-# Release engineering
+# Reviewing and releasing eliVibe
 
-The first intended public version is `v0.1.0`; a local candidate is **not** a release. Git tags and the pinned semantic-release context govern public versions after bootstrap. Python's virtual developer project and the private Node workspace do not supply distribution versions. Use GitHub Releases only; npm, PyPI and marketplace publication are not configured.
+The [v0.1.0 GitHub release](https://github.com/taibenvenuti/elivibe/releases/tag/v0.1.0) shipped two archives and `SHA256SUMS`. Keep its tag and bytes unchanged. [Status](status.md) identifies the candidate and which distribution checks actually ran. Do not advertise GitHub source installation on an old ref, or npm installation before a version resolves and works.
 
-## Release rules and rehearsal
+## Version and contents
 
-The [policy](../tools/release-policy.mjs) uses the pinned commit analyzer and release-notes generator. Conventional `fix` → patch, `feat` → minor, and `!` or a `BREAKING CHANGE:` footer → major, even before 1.0. Scopes do not change the rule; the highest applicable bump wins. Ordinary `perf`, reverts, `docs`, `test`, `chore` and other types do not trigger a release. Git reverts paired with their original unreleased commit cancel. A breaking marker still triggers a major bump on an otherwise ignored type. Do not invoke semantic-release with its default configuration.
+`package.json` is the product manifest for Git, npm and the native archive. Keep its version, lockfiles, tag and archive names aligned. The [explicit semantic-release policy](../dev/release-policy.mjs) uses `fix` → patch, `feat` → minor and `!`/`BREAKING CHANGE` → major, including before 1.0. Never run semantic-release with its default plugins or mistake the untagged fixture result for a decision on this repository.
 
-Run the [product checks](development.md#product-checks). Their release-policy fixture can also run separately once the Node lock is installed:
+The host-managed **1.0.0 candidate** breaks the v0.1.0 contract: it replaces report-only inference with ordinary OMP conversation and retires isolated model, judge and route-approval controls. Use `feat(omp)!: explain handoffs in the host conversation` as the squash subject. Explain that disclosure change in the squash body, release notes and migration guide. Check the policy decision on the actual final main history before tagging.
 
-```sh
-node tools/release-rules.mjs
-```
+From a **clean checkout of the exact reviewed main commit** with its hosted checks complete, prepare artifacts outside the repository. The steps below use the same dedicated Bash shell (`set -euo pipefail`); stop on any failed command or unexpected remote result. Fill in review inputs from the approval record, not from a moving ref or an earlier candidate.
 
-This invokes the actual analyzer, notes generator and release guard via dry-run semantic-release against disposable local Git repositories. It prints expected and actual decisions and checks that the guard rejects the wrong approved version. Its untagged fixture intentionally demonstrates the upstream `1.0.0` default, **not** the initial candidate version. No real refs or remotes are touched. The [read-only rehearsal workflow](../.github/workflows/release-rehearsal.yml) can also check the selected checkout and build the candidate twice without uploading any assets.
-
-## Build and verify an exact candidate
-
-Use a clean checkout at the reviewed full SHA, with full history and tags, Python 3.14.4 and Git. The builder reads only fixed paths from that commit's Git tree, not local edits or untracked files. `--bootstrap` requires `0.1.0` and no existing stable release tag. It neither writes a tag nor asks semantic-release for the first version.
-
-```sh
-sha=$(git rev-parse HEAD)
-version=0.1.0
+```bash
+: "${sha:?approved full main SHA}" "${version:?approved manifest version}"
+test -z "$(git status --porcelain)"
+test "$(git rev-parse HEAD)" = "$sha"
+test "$(node -p 'require("./package.json").version')" = "$version"
 output=$(mktemp -d)
-python tools/package.py rehearse --version "$version" --commit "$sha" --bootstrap --license-id MIT
-python tools/package.py build --version "$version" --commit "$sha" --bootstrap --license-id MIT --output-dir "$output"
-python tools/package.py verify --version "$version" --commit "$sha" --bootstrap --license-id MIT --output-dir "$output"
+assets=$(mktemp -d "$output/github.XXXXXXXX")
+source_dir=$(mktemp -d "$output/source.XXXXXXXX")
+zip="elivibe-$version.zip"
+native="elivibe-omp-$version.tar.gz"
+npm_tarball="$output/elivibe-$version.tgz"
+python3.14 dev/package.py rehearse --commit "$sha" --version "$version" --license-id MIT
+python3.14 dev/package.py build --commit "$sha" --version "$version" --license-id MIT --output-dir "$assets"
+python3.14 dev/package.py verify --commit "$sha" --version "$version" --license-id MIT --output-dir "$assets"
+git archive -o "$output/reviewed-source.tar" "$sha"
+tar -xf "$output/reviewed-source.tar" -C "$source_dir"
+(cd "$source_dir" && npm pack --offline --ignore-scripts --pack-destination "$output")
+tar -tzf "$npm_tarball"
+sha256sum "$assets/$zip" "$assets/$native" "$assets/SHA256SUMS" "$npm_tarball" > "$output/approved.sha256"
 ```
 
-The output directory must already exist and be empty for `build`. `verify` independently recreates the exact allowlisted bytes from the reviewed commit and rejects extra files, symlinks, malformed archives and altered checksums before extraction. `rehearse` builds twice in separate empty directories, compares the results, checks extraction and reports the skill digest, native manifest and asset SHA-256 values. No artifacts are written into the repository. An optional `--source-root` points to a different Git checkout root.
+Inspect the **actual** npm `.tgz`: manifest, version, entry point, runtime, regular canonical skill, public documentation and MIT license. Compare the shipped files with the reviewed commit; verify that npm, the native archive and the standalone ZIP include the same skill bytes. Exclude lifecycle scripts, runtime dependencies, development files, credentials, private research and raw transcripts. Keep the npm tarball separate from the GitHub asset directory. Record and approve the exact names and digests, not just the fact that packaging ran. A changed source tree, squash SHA, package or dependency invalidates the corresponding evidence.
 
-- `elivibe-0.1.0.zip`: `elivibe/SKILL.md`, byte-for-byte from the canonical skill, plus `LICENSE` and any `NOTICE` at archive root.
-- `elivibe-omp-0.1.0.tar.gz`: the OMP adapter, core, Jev provider, canonical skill, generated private manifest and a relative `skills` link targeting `skill`. `LICENSE` and any `NOTICE` are at the package root. The archive excludes dependencies, logs, private sources and repository settings.
-- `SHA256SUMS`: the two archive digests. Compare against the approved digest record; a checksum file from the same untrusted source is not independent authentication.
+## Destination gates — do not conflate them
 
-For another local version, pass it explicitly and omit `--bootstrap`. `0.1.0-rc.N` (positive `N`) is an optional local label for installation testing, **not** a published prerelease or an automation branch. Local prerelease builds do not require `--license-id`. If a matching Git tag is present, the supplied SHA must match its commit.
+### Protected squash merge and Git source
 
-Every build takes `LICENSE` and any `NOTICE` from the reviewed revision, keeps them outside the runtime skill tree, and sets `MIT` in the private native manifest. Use `--license-id MIT` to assert the approved license for a stable release. Package verification tests the mechanics, not rights clearance.
+The owner separately authorizes the merge of the reviewed PR head. Require a ready, current PR targeting protected `main`, resolved review threads, the Conventional Commit title and passing required jobs: **Product checks (Linux, Python 3.14, Node 24)** and **Native OMP smoke (Linux x64)**. Document review; sole-maintainer review is not independent approval. Do not use admin bypass, auto-merge, force-push or branch deletion.
 
-## Install, update or remove the OMP plugin
+```bash
+repo=taibenvenuti/elivibe
+subject='feat(omp)!: explain handoffs in the host conversation'
+: "${pr:?approved PR number}" "${head:?approved full PR head SHA}" "${squash_body:?approved squash body file}"
+gh pr view "$pr" -R "$repo" --json baseRefName,headRefOid,isDraft,title,mergeStateStatus |
+  jq -e --arg head "$head" --arg title "$subject" \
+    '.baseRefName == "main" and .headRefOid == $head and .title == $title and
+     (.isDraft | not) and .mergeStateStatus == "CLEAN"'
+gh pr checks "$pr" -R "$repo" --required
+gh pr merge "$pr" -R "$repo" --squash --match-head-commit "$head" \
+  --subject "$subject" --body-file "$squash_body"
+```
 
-Follow the [local setup instructions](installation.md). Verify the archive before extracting it into a fresh directory; use `tar` or another extractor that preserves the internal `skills` link. Keep the extracted directory: `omp plugin link` registers that directory, not the archive. Run native installation, update and rollback checks from both verified candidate archives in the [isolated OMP smoke](development.md#native-omp-smoke); this tests OMP 19.2.1 on Linux x64 with synthetic responses, not other host versions or a live provider.
+Read the resulting commit from `gh pr view "$pr" -R "$repo" --json state,mergedAt,mergeCommit`; only use its full SHA once merged. In the release checkout fetch it, confirm it is the intended `main` tip and its tree and subject match the review, and check out that exact SHA. Record the successful `main` **push** run URL for that SHA, not the PR run:
 
-## Hosted repository policy
+```bash
+: "${sha:?approved squash SHA}"
+git fetch origin main
+test "$(git rev-parse FETCH_HEAD)" = "$sha"
+test "$(git show -s --format=%s "$sha")" = "$subject"
+test "$(git rev-parse "$sha^{tree}")" = "$(git rev-parse "$head^{tree}")"
+gh run list -R "$repo" --workflow ci.yml --branch main --event push --commit "$sha" --status success
+```
 
-The intended repository is `taibenvenuti/elivibe`, with `taibenvenuti` as sole maintainer and `main` as the default branch. Verify these settings in GitHub before publication; this policy does not mean they have been applied.
+Inspect the run's two required jobs, read the final release decision, and prepare the artifacts above. Install `omp plugin install "github:$repo#$sha"` in a clean consumer environment. Record version, source, skill/command discovery and actual first use and removal; verify rollback with a retained installation. If trust, SSH or isolation blocks the test, report it rather than bypassing it. The [rehearsal workflow](../.github/workflows/release-rehearsal.yml) does not publish. Authenticated preview is separate; do not activate the [parked privileged workflow](../.github/release-workflow.yml).
 
-- Use pull requests and squash merges only. Use a Conventional Commit PR title as the squash commit subject. Require both **Product checks (Linux, Python 3.14, Node 24)** and **Native OMP smoke (Linux x64)** on the current PR revision. The sole maintainer records a self-review in the PR before merging after both checks pass; self-review is not independent approval. Revisit independent review when another maintainer joins.
-- Protect `main` from force pushes and deletion. Protect `v*` release tags from update and deletion, and restrict creation to the authorized release actor. Verify that neither routine merges nor incidental workflow permissions can bypass these protections.
-- Keep write access limited to authorized maintainers, routine workflow tokens read-only, and Actions unable to create or approve pull requests. Grant any future publisher only the permissions needed for the approved operation. Verify GitHub private vulnerability reporting is enabled and usable before the first public release.
+### Signed tag and GitHub draft
 
-If the host cannot enforce a required control, stop and have the owner review the gap before proceeding. Do not bypass a failed check to merge or release.
+Require explicit owner approval for the exact `sha` and `version`, license, digests, release title and notes before creating the protected tag or draft. Only a repository admin can create a `v*` tag; nobody can move or delete one. Use the approved signing identity and existing trust. For SSH signatures, set `allowed_signers` to a reviewer-controlled absolute path and use the command-scoped override below; for OpenPGP, use `git verify-tag "$tag"` with the approved trusted key. Do not alter global Git configuration or bypass a failed signature check.
 
-## Publication remains disabled
+```bash
+: "${release_title:?approved title}" "${notes:?approved release notes file}"
+tag="v$version"
+test -z "$(git ls-remote --tags origin "refs/tags/$tag")"
+test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$sha"
+sha256sum -c "$output/approved.sha256"
+git tag -s "$tag" "$sha" -m "eliVibe $tag"
+git -c gpg.ssh.allowedSignersFile="$allowed_signers" verify-tag "$tag"
+test "$(git rev-parse "$tag^{}")" = "$sha"
+git push origin "refs/tags/$tag"
+test "$(git ls-remote origin "refs/tags/$tag" | cut -f1)" = "$(git rev-parse "$tag")"
+test "$(git ls-remote origin "refs/tags/$tag^{}" | cut -f1)" = "$sha"
+gh release create "$tag" -R "$repo" --verify-tag --draft --title "$release_title" \
+  --notes-file "$notes" "$assets/$zip" "$assets/$native" "$assets/SHA256SUMS"
+```
 
-[Publication configuration](../.github/release-workflow.yml) is parked (EV-06) outside the active workflow directory and cannot be triggered. `v0.1.0` is a controlled bootstrap, not a semantic-release publication. Approve the public history, destination and rights first. On the exact trusted `main` SHA, verify both hosted checks and the local licensed `0.1.0` build, reproducibility, and native install/update/rollback gates. Review the notes and exact assets and digests before any publication.
+Confirm before any write that `origin` is the expected GitHub repository. If tag or draft creation fails, inspect remote state before retrying; do not replace a tag or clobber assets. Record the numeric release ID and the asset IDs, names and sizes:
 
-Require explicit owner authorization before creating `v0.1.0` at that SHA or creating or publishing a GitHub Release. Review the draft before changing its visibility, and release only the approved bytes. Never tag an unreviewed revision or run uninitialized semantic-release to publish the first release. Confirm the release, notes, signed or otherwise approved tag provenance, downloaded asset bytes and installed manifest at the target. Keep the publisher parked throughout bootstrap.
+```bash
+gh api "repos/$repo/releases" --paginate \
+  --jq ".[] | select(.tag_name == \"$tag\") | {id,tag_name,draft,prerelease,name,body,assets:[.assets[]|{id,name,size}]}"
+```
 
-If separately authorized **after** bootstrap, move the reviewed inactive workflow into `workflows/` and use explicit dispatch from trusted `main`; there is no push or pull-request publication trigger. Review actual branch and tag protections first. Set the approved `ELIVIBE_LICENSE_ID` and the exact `ELIVIBE_APPROVAL` tuple `OPERATION:SHA:VERSION:LICENSE_ID` as repository variables, then clear the approval after the attempt. `preview` authorizes only authenticated dry-run; `publish` requires a separate approval and explicit publication dispatch. No assumed environment reviewer gate or personal access token is needed.
+Set `release_id` to the inspected numeric ID. Compare title and body with the approved copy. Download each asset independently by ID into an empty directory; verify the exact three names, bytes and manifest before seeking publication approval.
 
-Both named hosted jobs (product and native) must have succeeded in one `ci.yml` push attempt at the identical main SHA. The review job has a read-only token for checking those results and reruns local gates. Only the release job has `contents: write`: its pinned checkout receives the job token but does not persist credentials, and only the release-driver step receives that token as `GH_TOKEN`. Both jobs fetch full history and avoid untrusted caches and artifacts. The release driver checks `main` and tag/release state, verifies the expected version and prepares licensed assets before creating the tag. Release notes record the revision, tag, compatibility and verification limits; [CHANGELOG.md](../CHANGELOG.md) records the initial changes and notes policy.
+```bash
+: "${release_id:?verified numeric draft ID}"
+release_api="repos/$repo/releases/$release_id"
+gh api "$release_api" | jq -S '{id,tag_name,draft,prerelease,name,body,
+  assets: [.assets[] | {id,name,size,digest}] | sort_by(.name)}' > "$output/draft.json"
+jq -e --arg tag "$tag" --arg title "$release_title" --arg zip "$zip" --arg native "$native" '
+  .draft and (.prerelease | not) and .tag_name == $tag and .name == $title and
+  ([.assets[].name] | sort) == (["SHA256SUMS", $zip, $native] | sort)
+' "$output/draft.json"
+draft_assets=$(mktemp -d)
+for name in "$zip" "$native" SHA256SUMS; do
+  asset_id=$(jq -er --arg name "$name" '.assets[] | select(.name == $name) | .id' "$output/draft.json")
+  gh api "repos/$repo/releases/assets/$asset_id" -H 'Accept: application/octet-stream' > "$draft_assets/$name"
+  cmp "$assets/$name" "$draft_assets/$name"
+done
+(cd "$draft_assets" && sha256sum -c SHA256SUMS)
+python3.14 dev/package.py verify --commit "$sha" --version "$version" --license-id MIT --output-dir "$draft_assets"
+```
 
-Do not retry blindly after a failed publication. Check whether the tag exists (and where it points), the release state, notes and every asset digest, against the approved revision. A tag or release already using the target version blocks automation. Do not delete, retag, or overwrite published assets; preserve evidence and obtain owner authorization for incident handling, normally a corrected new version. After approved publication, verify separately downloaded assets and install the downloaded native archive.
+### Publish the verified GitHub draft
 
-## Verification levels
+Only after separate approval of that draft ID, notes and asset digests, compare the current draft to the approved snapshot. Publish by ID, without re-uploading anything. Then use a fresh anonymous consumer environment to confirm the same public release and download the three assets without credentials.
 
-Record expected/actual decisions, commands, tested SHA, version, manifest and digests in the candidate review:
+```bash
+gh api "$release_api" | jq -S '{id,tag_name,draft,prerelease,name,body,
+  assets: [.assets[] | {id,name,size,digest}] | sort_by(.name)}' | cmp "$output/draft.json" -
+test "$(git ls-remote origin "refs/tags/$tag^{}" | cut -f1)" = "$sha"
+gh api --method PATCH "$release_api" -F draft=false --jq '{id,tag_name,draft,prerelease,html_url}'
+```
 
-| Level | Evidence | Limit |
-| --- | --- | --- |
-| R1 | Disposable semantic-release decisions plus the `test_bootstrap_and_tag_require_exact_version_and_commit` regression | No package or destination authorization evidence |
-| R2 | Candidate `rehearse`, `build`/`verify`, and isolated native install/update/rollback from verified assets | No authentication or upload evidence |
-| R3 | Only if separately authorized: authenticated dry-run against the trusted branch and tags, with push-permission check and exact decision recorded | Dry-run is not offline, skips prepare/publish, and a no-release decision tests only that path. Untagged bootstrap uses local checks and owner review instead |
-| R4 | Only after scoped owner approval: actual tag, release visibility, notes, downloaded hashes and native install at the authorized destination | No efficacy, broader compatibility or security certification |
+```bash
+public_assets=$(mktemp -d)
+curl -q -fsS "https://api.github.com/repos/$repo/releases/tags/$tag" |
+  jq -e --argjson id "$release_id" --arg tag "$tag" \
+    '.id == $id and .tag_name == $tag and (.draft or .prerelease | not)'
+for name in "$zip" "$native" SHA256SUMS; do
+  curl -q -fsSL "https://github.com/$repo/releases/download/$tag/$name" -o "$public_assets/$name"
+  cmp "$assets/$name" "$public_assets/$name"
+done
+(cd "$public_assets" && sha256sum -c SHA256SUMS)
+python3.14 dev/package.py verify --commit "$sha" --version "$version" --license-id MIT --output-dir "$public_assets"
+```
+
+Use the public downloads to [try the standalone skill and link the native archive](installation.md). Record the verified public URL and consumer results before closing this gate.
+
+### First npm publication
+
+This is a separate write. Use the public registry and exact `elivibe` identity from the reviewed tarball. The package and `/latest` returned 404 during review; that is not a reservation or proof of ownership. Recheck anonymously just before the decision. For the planned **first** npm release, both must still be 404; a 200, conflicting owner or unexpected status means stop and investigate. In the owner's authorized publisher environment, compare `npm whoami` to the approved account. Identity does not prove permission to claim an unpublished name. Never read or print npm credentials or change auth settings to force a release.
+
+```bash
+registry=https://registry.npmjs.org
+for path in elivibe elivibe/latest; do
+  test "$(curl -q -sS -o /dev/null -w '%{http_code}' "$registry/$path")" = 404
+done
+: "${publisher:?approved npm account}"
+test "$(npm whoami --registry="$registry")" = "$publisher"
+tar -xOzf "$npm_tarball" package/package.json |
+  jq -e --arg version "$version" '.name == "elivibe" and .version == $version and
+    .repository.url == "git+https://github.com/taibenvenuti/elivibe.git"'
+sha256sum -c "$output/approved.sha256"
+```
+
+[npm Trusted Publishing](https://docs.npmjs.com/trusted-publishers/) is configured in **existing package settings**; [first-version OIDC support](https://github.com/npm/cli/issues/8544) is not available for this bootstrap. The repository's active workflows are **Product checks** and **Release rehearsal (no publication)**, neither with `id-token: write`. A later trusted publisher needs a separately approved workflow under `.github/workflows/`, matching npm's owner/repository/workflow filename and environment (if configured), `id-token: write`, a GitHub-hosted runner, npm ≥ 11.5.1 and Node ≥ 22.14.0. Do not bootstrap with placeholder bytes or enable automated publication here.
+
+After explicit approval of the account, exact tarball, version, public visibility and `latest` tag, the authorized owner publishes with normal npm authentication and [interactive 2FA](https://docs.npmjs.com/creating-and-publishing-unscoped-public-packages/). If that path isn't available, stop.
+
+```bash
+npm publish "$npm_tarball" --ignore-scripts --access public --tag latest --registry="$registry"
+```
+
+From a clean unauthenticated consumer, confirm the pinned version and `latest` resolve to the same public package. Verify registry `dist.integrity` and compare an independent tarball download to the approved bytes:
+
+```bash
+integrity="sha512-$(openssl dgst -sha512 -binary "$npm_tarball" | openssl base64 -A)"
+for ref in "$version" latest; do
+  curl -q -fsS "$registry/elivibe/$ref" |
+    jq -e --arg version "$version" --arg integrity "$integrity" \
+      --arg url "$registry/elivibe/-/elivibe-$version.tgz" \
+      '.name == "elivibe" and .version == $version and
+       .repository.url == "git+https://github.com/taibenvenuti/elivibe.git" and
+       .dist.integrity == $integrity and .dist.tarball == $url'
+done
+npm_download=$(mktemp -d)
+curl -q -fsS "$registry/elivibe/-/elivibe-$version.tgz" -o "$npm_download/elivibe-$version.tgz"
+cmp "$npm_tarball" "$npm_download/elivibe-$version.tgz"
+omp plugin install "elivibe@$version"
+omp plugin list --json
+```
+
+Check discovery, actual first use and removal in that clean OMP environment. Only then update [installation](installation.md), [compatibility](compatibility.md) and [status](status.md) with observed results. After any failed write, inspect remote state and digest before retrying. A published npm name/version cannot be reused for different bytes. A GitHub release does not publish to npm; neither destination grants marketplace acceptance.

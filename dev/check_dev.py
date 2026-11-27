@@ -10,10 +10,13 @@ from collections import Counter
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
+from package import skill_digest, validate_manifest
+
 SUBJECT = re.compile(r"[a-z]+(?:\([^\s()]+\))?!?: \S[^\r\n]*")
 LINK = re.compile(r"\[[^\]]+\]\(([^\s)]+)\)")
 HEADING = re.compile(r"^#{1,6}\s+(.+?)\s*$")
 FENCE = re.compile(r"^ {0,3}(`{3,}|~{3,})(.*)$")
+NODE_VERSION = "24.21.0"
 DOCS = (
     "AGENTS.md",
     "README.md",
@@ -22,8 +25,9 @@ DOCS = (
     "SECURITY.md",
     "CODE_OF_CONDUCT.md",
     ".github/PULL_REQUEST_TEMPLATE.md",
-    "skill/elivibe/SKILL.md",
+    "skills/elivibe/SKILL.md",
     "design/adr/0004-conceptual-explanation-and-native-integration.md",
+    "design/adr/0005-host-managed-teaching-and-distribution.md",
 )
 
 
@@ -33,31 +37,31 @@ def require(condition: bool, message: str) -> None:
 
 
 def configuration() -> None:
+    skill_digest(Path.cwd())
     project = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
     require(
         project["tool"]["pytest"]["ini_options"]["testpaths"] == ["tests/product"],
         "pytest must select only product tests by default",
     )
     manifest = json.loads(Path("package.json").read_bytes())
+    validate_manifest(manifest, project["project"]["version"])
     lock = json.loads(Path("package-lock.json").read_bytes())
     packages = lock["packages"]
-    require(
-        manifest["private"] is True and not manifest.get("dependencies"),
-        "the npm workspace must be private and development-only",
-    )
     locked_root = packages[""]
     require(
         lock["lockfileVersion"] == 3
+        and all(lock[k] == manifest[k] for k in ("name", "version"))
         and all(
             locked_root[k] == manifest[k]
-            for k in ("name", "engines", "devDependencies")
-        ),
+            for k in ("name", "version", "license", "devDependencies")
+        )
+        and "engines" not in locked_root,
         "npm lock root does not match package.json",
     )
     version = subprocess.check_output(["node", "--version"], text=True).strip()
     require(
-        version == "v" + manifest["engines"]["node"],
-        f"expected Node {manifest['engines']['node']}, got {version}",
+        version == "v" + NODE_VERSION,
+        f"expected Node {NODE_VERSION}, got {version}",
     )
     for name, pin in manifest["devDependencies"].items():
         require(
@@ -78,6 +82,15 @@ def configuration() -> None:
                 f"{path} lacks an integrity-pinned npm registry source",
             )
     uv_lock = tomllib.loads(Path("uv.lock").read_text(encoding="utf-8"))
+    require(
+        any(
+            entry["source"] == {"virtual": "."}
+            and entry["name"] == project["project"]["name"]
+            and entry["version"] == manifest["version"]
+            for entry in uv_lock["package"]
+        ),
+        "uv lock root does not match the developer project and package version",
+    )
     for entry in uv_lock["package"]:
         require(
             entry["source"]

@@ -2,10 +2,7 @@
 /results/*
 !/results/README.md
 /.omp/
-/.agents/*
-!/.agents/skills/
-/.agents/skills/*
-!/.agents/skills/elivibe
+/.agents/
 /.venv/
 /__pycache__/
 __pycache__/

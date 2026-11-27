@@ -1,10 +1,15 @@
 # Changelog
 
-## Unreleased — v0.1.0
+## Unreleased — v1.0.0
 
-- A single portable skill teaches concepts beside the ordinary technical report. It does not rewrite the report or require a fixed outline.
-- Native OMP adds off, manual, light and full modes, with adjustable depth. Full runs in the ordinary conversation. Manual and light preserve the source and require separate destination review and confirmation for isolated explanation and judgment.
-- Isolated explanations follow the live active OMP model unless pinned and refuse when the route cannot be verified. Both isolated roles refuse configured proxies and otherwise accept a destination only when OMP's `shouldBypassProxy` proves it bypasses both proxy layers (local/private/metadata or existing `NO_PROXY`), so the default TypeSafe Jev judge, which remains judgment-only, is often refused. See [proxy eligibility](docs/privacy.md#proxy-eligibility) and [compatibility and evidence limits](docs/compatibility.md).
-- Source packaging builds a standalone skill ZIP, a native OMP bundle and SHA-256 checksums. Local builds are not published downloads.
+- **Breaking:** The ordinary conversation replaces v0.1.0's report-only routes. Manual and Light no longer use isolated requests; the host model can receive more than the report. Old route grants do not carry over. See [privacy and disclosure](docs/privacy.md).
+- Manual explanations, focused questions, and `/elivibe more` use the active OMP conversation. Manual stays the default; explicit explanations also work in Off and Full.
+- Light and Full guide the ordinary task response, with no separate judgment or explanation transport. Light teaches selectively when a meaningful gap warrants it. Full asks for teaching with meaningful technical handoffs. The selected depth applies in both; neither replaces the report.
+- Depth is `auto`, `brief`, or `detailed`; `adaptive` still means `auto`. The adapter's `model`, `judge`, `consent`, and `judge-consent` controls now show a migration notice. See [moving from a v0.1.0 linked install](docs/installation.md#move-from-a-v010-linked-install).
+- The same regular `skills/elivibe/SKILL.md` supplies explicit portable use and native teaching guidance. The standalone skill is not advertised for automatic model invocation.
+- The candidate can be linked from a reviewed local checkout without a build. [GitHub source and npm installation](docs/installation.md#install-the-omp-candidate) are separate routes, not established by local checks. Source packaging also produces the standalone ZIP, offline native OMP tarball and checksums.
 
-When a version is published, its GitHub release notes identify the tag, commit, compatibility and verification limits. Subsequent notes come from the configured semantic-release process. See [release policy](docs/release.md).
+## [v0.1.0](https://github.com/taibenvenuti/elivibe/releases/tag/v0.1.0)
+
+- First public release: a portable skill and a native OMP plugin with Off, Manual, Light, and Full modes. In this version, Full runs in the ordinary conversation; Manual explanations and Light use separately authorized isolated routes, subject to [v0.1.0 routing limitations](https://github.com/taibenvenuti/elivibe/blob/v0.1.0/docs/compatibility.md).
+- Published the licensed standalone ZIP, native OMP tarball, and SHA-256 manifest for `fe5ae8a9427b8d25a82b09c6186ab17b95b9882d`. See the [release notes](https://github.com/taibenvenuti/elivibe/releases/tag/v0.1.0) for the tested environment and evidence limits.

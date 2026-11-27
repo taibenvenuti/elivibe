@@ -37,7 +37,7 @@ jobs:
         with:
           node-version: '24.21.0'
       - name: Install locked development tools and check the checkout
-        run: sh tools/check --setup
+        run: sh dev/check --setup
 
   native:
     name: Native OMP smoke (Linux x64)
@@ -55,6 +55,9 @@ jobs:
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: '3.14.4'
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24.21.0'
       - name: Install bubblewrap without relaxing runner isolation
         run: |
           if ! command -v bwrap >/dev/null; then
@@ -74,14 +77,12 @@ jobs:
       - name: Exercise the verified artifacts in an isolated native session
         run: |
           sha=$(git rev-parse HEAD)
-          candidate=0.0.0-rc.1
-          update=0.0.0-rc.2
-          mkdir "$RUNNER_TEMP/candidate" "$RUNNER_TEMP/update"
-          python tools/package.py build --output-dir "$RUNNER_TEMP/candidate" --version "$candidate" --commit "$sha"
-          python tools/package.py verify --output-dir "$RUNNER_TEMP/candidate" --version "$candidate" --commit "$sha"
-          python tools/package.py build --output-dir "$RUNNER_TEMP/update" --version "$update" --commit "$sha"
-          python tools/package.py verify --output-dir "$RUNNER_TEMP/update" --version "$update" --commit "$sha"
-          python tools/omp_smoke.py --hosted --omp "$RUNNER_TEMP/omp" \
+          candidate=$(node -p 'require("./package.json").version')
+          mkdir "$RUNNER_TEMP/candidate"
+          python dev/package.py build --output-dir "$RUNNER_TEMP/candidate" --version "$candidate" --commit "$sha"
+          python dev/package.py verify --output-dir "$RUNNER_TEMP/candidate" --version "$candidate" --commit "$sha"
+          npm pack --offline --ignore-scripts --cache "$RUNNER_TEMP/npm-cache" --pack-destination "$RUNNER_TEMP"
+          python dev/omp_smoke.py --hosted --omp "$RUNNER_TEMP/omp" \
             --skill-archive "$RUNNER_TEMP/candidate/elivibe-$candidate.zip" \
             --archive "$RUNNER_TEMP/candidate/elivibe-omp-$candidate.tar.gz" \
-            --update-archive "$RUNNER_TEMP/update/elivibe-omp-$update.tar.gz"
+            --npm-archive "$RUNNER_TEMP/elivibe-$candidate.tgz"

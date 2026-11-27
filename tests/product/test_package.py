@@ -2,15 +2,16 @@ import hashlib
 
 import pytest
 
-from tools.package import skill_digest
+from dev.package import skill_digest
 
 
 @pytest.fixture
 def skill(tmp_path):
-    path = tmp_path / "skill/elivibe/SKILL.md"
+    path = tmp_path / "skills/elivibe/SKILL.md"
     path.parent.mkdir(parents=True)
     path.write_text(
-        "---\nname: elivibe\ndescription: A concise project handoff\n---\n\n# Handoff\n",
+        "---\nname: elivibe\ndescription: A concise project handoff\n"
+        "disable-model-invocation: true\n---\n\n# Handoff\n",
         encoding="utf-8",
     )
     return path
@@ -49,6 +50,7 @@ def test_package_rejects_executable_skill(skill, tmp_path):
     [
         (b"name: elivibe", b"name: bogus", "invalid native skill metadata"),
         (b"A concise project handoff", b" ", "invalid native skill metadata"),
+        (b"disable-model-invocation: true", b"", "invalid native skill metadata"),
         (b"# Handoff\n", b"", "empty skill body"),
     ],
 )

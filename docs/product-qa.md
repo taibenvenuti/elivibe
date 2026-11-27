@@ -1,21 +1,46 @@
 # Product QA
 
-Qualitative examples, synthetic engineering tests, and historical observations answer different questions. None establishes improved comprehension, improved safety, or live-provider behavior.
+Published [v0.1.0](https://github.com/taibenvenuti/elivibe/releases/tag/v0.1.0) has historical archive and synthetic native evidence. It is not evidence for the unreleased v1.0.0 candidate. The engineering checklist below describes what to check; the 0.2.0 development walkthrough records observations for its own revisions, not a v1.0.0 acceptance result. See [status](status.md) for current evidence. Synthetic checks and constructed comparisons do not measure comprehension, improvement in safety, or live-provider behavior.
 
 ## Engineering checks
 
-Use the [product checks](development.md) and [isolated native smoke](development.md#native-omp-smoke) for the revision you're evaluating. The native target is OMP 19.2.1 on Linux x64/glibc (WSL2). The smoke uses temporary profiles and projects, a network boundary, verified archives and a synthetic loopback provider. Record the exact revision, host version, result and request evidence; the test inputs are not settings to copy into your regular profile.
+Use the [development checks](development.md) and [native smoke procedure](development.md#native-omp-smoke) for the revision under review. Record the exact commit, OMP version, platform, package source, observed requests, and results. The target is OMP 19.2.1 on Linux x64/glibc. Use a disposable profile and synthetic provider, not your everyday account or data.
 
-- Portable regressions in `tests/plugin/core.test.ts` target mode/depth decisions, budgets and preservation on refusal or failure; `tests/plugin/omp.test.ts` targets authorization, native boundaries and separate delivery. The Jev regressions in `tests/plugin/jev.test.ts` use synthetic responses, not the live service.
-- A positive scripted case must keep the exact source report and attach at most one supplement to the same completed handoff. A denied route or opted-out case must not dispatch a side request; cancellation must not attach stale output. For light `skip`, count one separately authorized judgment and no explanation. For full, count only ordinary inference and check the instructions, not simulated model obedience. Count native discovery metadata separately.
-- A synthetic native result can establish discovery, request payloads and counts, source preservation and tested lifecycle behavior. It does not measure a model's teaching quality, provider latency, charges, live authentication, retention, or support on other hosts.
+| Case | Evidence to look for |
+|---|---|
+| Discovery and lifecycle | The intended version links or installs, discovers one regular explicit-only `eliVibe` skill and exposes one adapter command. Check archive and package layouts, update, rollback and removal without touching other registrations. |
+| Manual, Off and controls | Tasks in Manual (the default) and Off do not get automatic teaching instructions. Help, status, mode and depth changes, and retired controls don't start a model request. Old model/consent commands show their migration notice. |
+| Explicit explanation, question and `more` | They use ordinary OMP turns in any mode, keep the source report unchanged, and use the applicable source and prior explanation. Include a focused question, a repeated follow-up, and a stale or absent source case. A named event from another session must not be silently substituted. |
+| Light and Full | Light instructs the ordinary model to teach selectively; Full asks it to teach with meaningful technical handoffs. Both use the selected depth and keep the report first. No separate judgment, explanation client, or grant. Inspect what went to OMP separately from how a model responded. |
+| Provenance, opt-out and exact format | A fixture must not invent evidence, alter the preceding handoff, promote a quoted instruction into user authority, or add explanation to an explicitly output-only response. Record what was observed in both the messages and request traces; don't infer request isolation from the UI. |
 
-For cancellation coverage, the smoke holds a positive judgment across a real session switch and checks that no follow-on explanation request is sent. Not displaying an answer is different from not disclosing the report. This check does not establish what happens to a request that has already reached a provider.
+Count OMP metadata discovery separately from model inference. For an explicit request, expect an ordinary OMP turn, not zero traffic; for in-turn guidance, compare with an equivalent ordinary task, not a fixed number of model calls (a task can use tools or take multiple steps). A synthetic test can establish tested request paths, payloads, and lifecycle behavior. It can't establish how a different host, a real provider, or a particular model will behave, or prove isolation or redaction.
+
+## GitHub candidate first use
+
+At `440f0f3024253fd86f7955db4ab251364fb96cd5`, a disposable OMP 19.2.1 installation on Linux x64 fetched the actual public `github:` pin. The package manager's archive integrity and embedded full commit matched the independent public download; all 46 installed tracked files matched Git. In a loopback-only session, help/status made no model request. Manual/auto was the default. An ordinary coding turn wrote a real fixture; the original handoff stayed unchanged through bare `/elivibe` and `/elivibe more`. Explicit `/skill:elivibe` worked. Five synthetic requests total. Removal kept the fixture and the unrelated plugin. This proves the GitHub consumer path on that revision, not a new live teaching result.
+
+## Observed development walkthrough
+
+At `b85ae4420cdb6a86ef99d45eab0be024c8a9f522`, an implementer used a fresh OMP 19.2.1 ACP session on WSL Linux x64 with the already authenticated `openai-codex/gpt-6.2-astra`. The outbox task was fictional. These are short excerpts of actual model output, not authored examples:
+
+**Handoff:** “A crash after broker acceptance but before the sent mark commits can cause duplicate publication.”
+
+**Bare `/elivibe`:** “The transaction keeps the order and its outbox row together; it does not make broker acceptance and the later sent mark atomic.”
+
+**`/elivibe more`:** “If the publisher stopped before sending, a retry is needed to publish `OrderPlaced`. If it stopped after the broker acknowledged durable acceptance but before the sent mark committed, the retry sends an event the broker already accepted. The restarted publisher sees the same database state in both cases.”
+
+The first explanation separated two transaction boundaries. The second explained *why* the publisher cannot decide from the unmarked row alone whether retrying will duplicate a send. Both were labeled supplementary interpretation, not newly verified evidence. All three turns completed on the same model; no tool call was observed. No raw transcript is retained. This is neither reader feedback nor transport inspection.
+
+An earlier trial at `d412c3ca89d90cc6748c3ca3c10fb5542b6f76c5` also produced a useful bare explanation, but the synthetic wire check caught a different transport downgrading an in-context developer message to a user message. That is why the final integration appends trusted policy to OMP's top-level prompt rather than inferring correct attribution from a good answer.
 
 ## Qualitative walkthrough
 
-Read the [constructed comparisons](qa-examples.md) first as **A** (original report alone) and then as **B** (the same text plus an illustrative supplement, if useful). Ask what mechanism or relationship B explains and what a reader could decide differently. Verify that B preserves unresolved work, caveats and observed facts; it shouldn't be a recap, invent a cause, replace the report or authorize an action. For format, opt-out or trivial cases, B should not add an answer merely to fill space.
+Read the [constructed comparisons](qa-examples.md) first as **A** (the original handoff) and then as **B** (exactly A, plus the illustrated supplement if useful). Ask:
 
-Review scripted text separately from the routing checks. False verification, invented system facts, erased material caveats, unauthorized requests and report replacement are regressions. Fix the behavior or safely disable the affected path rather than calling a script a successful live explanation. These examples are original constructed material; no participant study or provider experiment was run for them.
+- What could the reader infer incorrectly from A, and which mechanism or relationship does B make clear?
+- Does B preserve the evidence, caveats, outstanding work and decision owner? Does it distinguish what might happen from what happened?
+- Does a focused follow-up deepen the explanation rather than repeat A or invent facts? Would the same answer still be honest if evidence were missing or two observations conflicted?
+- For a trivial change, strict output or opt-out, is A alone the right answer?
 
-When trying eliVibe in an approved everyday session, record a redacted example of what a reader can now explain or decide, what remains unclear, and whether the supplement simply repeated the report. Don't collect transcripts or telemetry by default, and don't interpret anecdotes as measured comprehension gains.
+The examples are written for review, not real reports, user research or model output. When offering [feedback](../CONTRIBUTING.md), recreate the smallest example with synthetic facts. Say what the explanation helped you distinguish and what's still unclear, without sharing private reports, transcripts or credentials. Treat anecdotes as observations, not measured comprehension gains.

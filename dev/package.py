@@ -14,13 +14,29 @@ import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-BOOTSTRAP_VERSION = "0.1.0"
 STABLE = r"(?:0|[1-9][0-9]*)(?:\.(?:0|[1-9][0-9]*)){2}"
 VERSION = re.compile(rf"{STABLE}(?:-rc\.[1-9][0-9]*)?")
 COMMIT = re.compile(r"[0-9a-f]{40}(?:[0-9a-f]{24})?")
-SKILL = "skill/elivibe/SKILL.md"
+SKILL = "skills/elivibe/SKILL.md"
 LICENSE_ID = "MIT"
-SOURCES = ("adapters/omp/index.ts", "core/index.ts", "providers/jev.ts", SKILL)
+ENTRY = "adapters/omp/index.ts"
+RUNTIME = (ENTRY, "core/index.ts", SKILL)
+SOURCES = (*RUNTIME, "package.json", "LICENSE")
+# Keep the Git/linked root from registering extra resources or duplicate skills.
+OTHER_DISCOVERY_PATHS = (
+    "tools",
+    "hooks",
+    "commands",
+    "rules",
+    "prompts",
+    ".mcp.json",
+    "mcp.json",
+    "plugin.json",
+    ".omp-plugin",
+    ".claude-plugin",
+    "skill",
+    ".agents/skills/elivibe",
+)
 NATIVE = "elivibe-omp"
 SUMS = "SHA256SUMS"
 
@@ -28,19 +44,19 @@ SUMS = "SHA256SUMS"
 def validate_skill(data: bytes) -> None:
     lines = data.decode("utf-8").splitlines()
     if not (
-        len(lines) >= 4
+        len(lines) >= 5
         and lines[:2] == ["---", "name: elivibe"]
         and lines[2].startswith("description: ")
         and lines[2].removeprefix("description: ").strip()
-        and lines[3] == "---"
+        and lines[3:5] == ["disable-model-invocation: true", "---"]
     ):
         raise ValueError("invalid native skill metadata")
-    if not any(line.strip() for line in lines[4:]):
+    if not any(line.strip() for line in lines[5:]):
         raise ValueError("empty skill body")
 
 
 def skill_digest(root: Path) -> str:
-    directory = root / "skill"
+    directory = root / "skills"
     for child in ("elivibe", "SKILL.md"):
         if not stat.S_ISDIR(directory.lstat().st_mode):
             raise ValueError("invalid skill directory")
@@ -66,9 +82,34 @@ def git(root: Path, *args: str) -> bytes:
     return result.stdout
 
 
-def release_sources(
-    root: Path, version: str, commit: str, bootstrap: bool
-) -> dict[str, bytes]:
+def validate_manifest(manifest: object, version: str) -> None:
+    if not isinstance(manifest, dict) or manifest.get("version") != version:
+        raise ValueError("requested version does not match the committed package.json")
+    if (
+        manifest.get("name") != "elivibe"
+        or manifest.get("license") != LICENSE_ID
+        or manifest.get("private")
+        or manifest.get("files") != [*RUNTIME, "NOTICE"]
+        or manifest.get("omp") != {"extensions": [f"./{ENTRY}"]}
+        or any(
+            key in manifest
+            for key in (
+                "engines",
+                "devEngines",
+                "scripts",
+                "dependencies",
+                "optionalDependencies",
+                "main",
+                "browser",
+                "bin",
+                "peerDependencies",
+            )
+        )
+    ):
+        raise ValueError("invalid native package.json")
+
+
+def release_sources(root: Path, version: str, commit: str) -> dict[str, bytes]:
     if not VERSION.fullmatch(version):
         raise ValueError("expected X.Y.Z or X.Y.Z-rc.N with N positive")
     if not COMMIT.fullmatch(commit):
@@ -84,13 +125,6 @@ def release_sources(
         .decode()
         .splitlines()
     )
-    if bootstrap and (
-        version != BOOTSTRAP_VERSION
-        or any(re.fullmatch(rf"v{STABLE}", tag) for tag in refs)
-    ):
-        raise ValueError(
-            f"bootstrap requires {BOOTSTRAP_VERSION} and no existing stable release tag"
-        )
     if f"v{version}" in refs:
         tagged = git(
             root, "rev-parse", "--verify", f"refs/tags/v{version}^{{commit}}"
@@ -101,16 +135,29 @@ def release_sources(
     entries = {}
     notice_names = ("LICENSE", "NOTICE")
     tree = git(
-        root, "ls-tree", "-r", "-z", commit, "--", *SOURCES[:-1], "skill", *notice_names
+        root,
+        "ls-tree",
+        "-r",
+        "-z",
+        commit,
+        "--",
+        *SOURCES,
+        "skills",
+        "NOTICE",
+        *OTHER_DISCOVERY_PATHS,
     )
     for entry in tree.split(b"\0")[:-1]:
         info, path = entry.split(b"\t", 1)
         mode, kind, oid = info.split()
         entries[path] = (mode, kind, oid)
-    if {name for name in entries if name.startswith(b"skill/")} != {SKILL.encode()}:
+    for path in OTHER_DISCOVERY_PATHS:
+        name = path.encode()
+        if any(entry == name or entry.startswith(name + b"/") for entry in entries):
+            raise ValueError(f"unexpected OMP discovery path: {path}")
+    if {name for name in entries if name.startswith(b"skills/")} != {SKILL.encode()}:
         raise ValueError("unexpected skill tree")
     sources = {}
-    required = (*SOURCES, "LICENSE")
+    required = SOURCES
     if b"NOTICE" in entries:
         required = (*required, "NOTICE")
     for name in required:
@@ -121,6 +168,7 @@ def release_sources(
         if name in notice_names and not sources[name].strip():
             raise ValueError(f"empty distribution notice: {name}")
     validate_skill(sources[SKILL])
+    validate_manifest(json.loads(sources["package.json"]), version)
     return sources
 
 
@@ -128,14 +176,13 @@ def artifacts(
     root: Path,
     version: str,
     commit: str,
-    bootstrap: bool = False,
     license_id: str | None = None,
 ) -> dict[str, bytes]:
     if license_id is not None and (
         license_id != LICENSE_ID or not re.fullmatch(STABLE, version)
     ):
         raise ValueError(f"--license-id must be {LICENSE_ID} and use a stable version")
-    sources = release_sources(root, version, commit, bootstrap)
+    sources = release_sources(root, version, commit)
     portable = io.BytesIO()
     with zipfile.ZipFile(portable, "w") as archive:
         for name in ("elivibe/SKILL.md", "LICENSE", "NOTICE"):
@@ -145,14 +192,6 @@ def artifacts(
                 member.create_system = 3
                 member.external_attr = (stat.S_IFREG | 0o644) << 16
                 archive.writestr(member, sources[source])
-    manifest = {
-        "name": "elivibe",
-        "version": version,
-        "private": True,
-        "license": LICENSE_ID,
-        "omp": {"extensions": ["./adapters/omp/index.ts"]},
-    }
-    sources["package.json"] = (json.dumps(manifest, indent=2) + "\n").encode()
     native = io.BytesIO()
     with (
         gzip.GzipFile(filename="", fileobj=native, mode="wb", mtime=0) as compressed,
@@ -164,10 +203,6 @@ def artifacts(
             member = tarfile.TarInfo(f"{NATIVE}/{name}")
             member.size = len(data)
             archive.addfile(member, io.BytesIO(data))
-        skills = tarfile.TarInfo(f"{NATIVE}/skills")
-        skills.type = tarfile.SYMTYPE
-        skills.linkname = "skill"
-        archive.addfile(skills)
     files = {
         f"elivibe-{version}.zip": portable.getvalue(),
         f"{NATIVE}-{version}.tar.gz": native.getvalue(),
@@ -225,9 +260,9 @@ def inspect_install(files: dict[str, bytes], version: str) -> None:
             archive.extractall(root, filter="data")
         skill = root / "elivibe/SKILL.md"
         plugin = root / NATIVE
-        discovered = plugin / "skills/elivibe/SKILL.md"
+        discovered = plugin / SKILL
         manifest = json.loads((plugin / "package.json").read_bytes())
-        if discovered.resolve(strict=True) != plugin.resolve() / SKILL:
+        if not stat.S_ISREG(discovered.lstat().st_mode):
             raise ValueError("unexpected native skill discovery path")
         if (
             discovered.read_bytes() != skill.read_bytes()
@@ -250,9 +285,6 @@ def main() -> None:
     parser.add_argument("--version", required=True)
     parser.add_argument("--commit", required=True)
     parser.add_argument(
-        "--bootstrap", action="store_true", help="require untagged initial 0.1.0"
-    )
-    parser.add_argument(
         "--license-id", help=f"assert {LICENSE_ID} for a stable release"
     )
     args = parser.parse_args()
@@ -264,7 +296,6 @@ def main() -> None:
         args.source_root,
         args.version,
         args.commit,
-        args.bootstrap,
         args.license_id,
     )
     try:
