@@ -11,7 +11,7 @@
   "license": "MIT",
   "skills": "./elivibe",
   "icon": "./icon.png",
-  "documentationUrl": "https://github.com/taibenvenuti/elivibe#readme",
+  "documentationUrl": "https://github.com/taibenvenuti/elivibe/blob/cca602359f4bef38ca8a3d4408fee1c6857d9375/docs/installation.md",
   "supportUrl": "https://github.com/taibenvenuti/elivibe/issues",
-  "privacyPolicyUrl": "https://github.com/taibenvenuti/elivibe/blob/main/docs/privacy.md"
+  "privacyPolicyUrl": "https://github.com/taibenvenuti/elivibe/blob/cca602359f4bef38ca8a3d4408fee1c6857d9375/docs/privacy.md"
 }

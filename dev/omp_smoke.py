@@ -193,7 +193,7 @@ def isolate(args):
         raise SystemExit(
             "The OMP smoke requires Linux bubblewrap and the pinned OMP binary."
         )
-    for path in (args.archive, args.npm_archive, args.skill_archive):
+    for path in (args.archive, args.npm_archive, args.skill_archive, args.source_archive):
         if not path.is_file():
             raise SystemExit(f"Missing prebuilt archive: {path}")
     addons = []
@@ -269,6 +269,9 @@ def isolate(args):
             "--ro-bind",
             str(args.skill_archive.resolve()),
             "/inputs/standalone.zip",
+            "--ro-bind",
+            str(args.source_archive.resolve()),
+            "/inputs/source.tar.gz",
             "--ro-bind",
             str(Path(__file__).resolve()),
             "/inputs/smoke.py",
@@ -729,6 +732,7 @@ def exercise(sink, peers, *, hosted, netns):
                 assert commands[name]["source"] == source, commands[name]
             else:
                 assert name not in commands, commands
+        return commands
 
     def texts(call, role):
         return [
@@ -917,6 +921,37 @@ def exercise(sink, peers, *, hosted, netns):
         if line.startswith("description: ")
     )
     skill_body = body.strip()
+
+    source = TRIAL / "source"
+    unpack("/inputs/source.tar.gz", source)
+    for path, data in native_files.items():
+        assert (source / path).read_bytes() == data, path
+    for path in (
+        ".agents/plugins/marketplace.json",
+        ".claude-plugin/marketplace.json",
+        "skills/.codex-plugin/plugin.json",
+        "skills/.claude-plugin/plugin.json",
+    ):
+        assert (source / path).is_file(), path
+    assert (source / CODEX_SKILL).read_bytes() == CODEX_POLICY
+    native("plugin", "link", str(source))
+    assert assert_registration(npm_manifest["version"]).samefile(source)
+    with Rpc(peers, hosted=hosted, netns=netns) as rpc:
+        commands = discovery(rpc, adapter=True, skill=True)
+        matching_skills = {
+            name
+            for name, command in commands.items()
+            if command["source"] == "skill" and command["description"] == description
+        }
+        assert matching_skills == {"skill:elivibe"}, matching_skills
+        response, _ = step(rpc, "/elivibe")
+        assert shows(response, "No completed handoff is available in this context.")
+        skill_call(rpc, source / SKILL)
+    native("plugin", "uninstall", "elivibe")
+    assert_registration()
+    assert (source / SKILL).read_bytes() == native_skill
+    with Rpc(peers, hosted=hosted, netns=netns) as rpc:
+        discovery(rpc)
 
     native("plugin", "link", str(linked))
     version, previous = stage_registry(sink, npm_manifest)
@@ -1147,7 +1182,8 @@ def exercise(sink, peers, *, hosted, netns):
         "normal work retained its tools. Original report and exact follow-up context remained in the session."
     )
     print(
-        "Native link and standalone skill discovery/removal passed; consumer files preserved."
+        "Git source, native link and standalone skill discovery/removal passed; "
+        "consumer files preserved."
     )
     if peers:
         print(
@@ -1229,6 +1265,12 @@ if __name__ == "__main__":
             type=Path,
             required=True,
             help="verified standalone skill ZIP",
+        )
+        parser.add_argument(
+            "--source-archive",
+            type=Path,
+            required=True,
+            help="complete git archive --format=tar.gz of the same candidate commit",
         )
         parser.add_argument("--ponytail", type=Path)
         parser.add_argument("--context-mode", type=Path)

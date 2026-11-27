@@ -78,11 +78,15 @@ jobs:
         run: |
           sha=$(git rev-parse HEAD)
           candidate=$(node -p 'require("./package.json").version')
-          mkdir "$RUNNER_TEMP/candidate"
+          mkdir "$RUNNER_TEMP/candidate" "$RUNNER_TEMP/source"
           python dev/package.py build --output-dir "$RUNNER_TEMP/candidate" --version "$candidate" --commit "$sha"
           python dev/package.py verify --output-dir "$RUNNER_TEMP/candidate" --version "$candidate" --commit "$sha"
-          npm pack --offline --ignore-scripts --cache "$RUNNER_TEMP/npm-cache" --pack-destination "$RUNNER_TEMP"
+          git archive --format=tar.gz --output="$RUNNER_TEMP/source.tar.gz" "$sha"
+          tar -xzf "$RUNNER_TEMP/source.tar.gz" -C "$RUNNER_TEMP/source"
+          (cd "$RUNNER_TEMP/source" &&
+            npm pack --offline --ignore-scripts --cache "$RUNNER_TEMP/npm-cache" --pack-destination "$RUNNER_TEMP")
           python dev/omp_smoke.py --hosted --omp "$RUNNER_TEMP/omp" \
+            --source-archive "$RUNNER_TEMP/source.tar.gz" \
             --skill-archive "$RUNNER_TEMP/candidate/elivibe-$candidate.zip" \
             --archive "$RUNNER_TEMP/candidate/elivibe-omp-$candidate.tar.gz" \
             --npm-archive "$RUNNER_TEMP/elivibe-$candidate.tgz"
