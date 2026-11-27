@@ -9,8 +9,8 @@ body:
     id: environment
     attributes:
       label: Version and environment
-      description: If known, include your eliVibe version, host and operating system. No local paths or account details.
-      placeholder: v0.1.0 standalone skill, OMP 19.2.1, Linux x64
+      description: If known, include your eliVibe version, installation source, host and operating system. No local paths or account details.
+      placeholder: v1.0.0 GitHub tag, OMP 19.2.1, Linux x64
     validations:
       required: false
   - type: textarea
