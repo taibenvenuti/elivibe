@@ -743,12 +743,32 @@ def exercise(sink, peers, *, hosted, netns):
             sink.unexpected,
         )
         expected_requests += count
-        for call in calls:
+        for index, call in enumerate(calls, first + 1):
             instructions = "\n".join(texts(call, "system") + texts(call, "developer"))
+            wire = [
+                (message["role"], message_text(message.get("content")))
+                for message in call["messages"]
+            ]
             for marker in (EXPLICIT, LIGHT, FULL):
-                assert instructions.count(marker) == int(marker == policy), (
+                assert instructions.count(marker) == int(marker == policy) and sum(
+                    text.count(marker) for _, text in wire
+                ) == int(marker == policy), (
                     prompt,
                     marker,
+                    f"request {index}",
+                    [
+                        (
+                            role,
+                            text.count(marker),
+                            text[-180:] if role == "tool" else text[:100],
+                        )
+                        for role, text in wire[-16:]
+                    ],
+                    [
+                        [text[-180:] for text in texts(request, "tool")[-1:]]
+                        for request in calls
+                    ],
+                    [frame.get("type") for frame in rpc.transcript[-15:]],
                 )
             if depth:
                 assert instructions.count(depth) == 1, (prompt, "wrong depth guidance")
@@ -899,6 +919,36 @@ def exercise(sink, peers, *, hosted, netns):
     assert not installed.samefile(linked) and not installed.samefile(npm)
     assert payload(installed)[1] == npm_skill
     assert (installed / ADAPTER).read_bytes() == (npm / ADAPTER).read_bytes()
+    native("plugin", "uninstall", "elivibe")
+    assert_registration()
+    native("plugin", "install", f"elivibe@{previous}")
+    assert payload(assert_registration(previous))[1] == npm_skill
+    for number in (version, previous):
+        native("plugin", "install", f"elivibe@{number}", "--force")
+        root = assert_registration(number)
+        assert payload(root)[1] == npm_skill
+        assert (root / ADAPTER).read_bytes() == (npm / ADAPTER).read_bytes()
+        with Rpc(peers, hosted=hosted, netns=netns) as rpc:
+            discovery(rpc, adapter=True, skill=True)
+            skill_call(rpc, root / SKILL)
+    for number in (version, previous):
+        assert f"/elivibe/-/elivibe-{number}.tgz" in sink.registry_hits, (
+            sink.registry_hits
+        )
+
+    native("plugin", "uninstall", "elivibe")
+    assert_registration()
+    assert not installed.exists(), "the npm installation remained after removal"
+    with Rpc(peers, hosted=hosted, netns=netns) as rpc:
+        discovery(rpc)
+        step(rpc, "Answer after removing the npm plugin.", "SMOKE_ADAPTER_REMOVED")
+    print(
+        f"Registry lifecycle: fresh {version}, fixture {previous} → {version} → {previous}, "
+        "uninstalled; kept the unrelated registration.",
+        flush=True,
+    )
+    native("plugin", "install", f"elivibe@{version}")
+    assert_registration(version)
 
     with Rpc(peers, hosted=hosted, netns=netns) as rpc:
         discovery(rpc, adapter=True, skill=True)
@@ -1024,27 +1074,7 @@ def exercise(sink, peers, *, hosted, netns):
 
     native("plugin", "uninstall", "elivibe")
     assert_registration()
-    native("plugin", "install", f"elivibe@{previous}")
-    assert payload(assert_registration(previous))[1] == npm_skill
-    for number in (version, previous):
-        native("plugin", "install", f"elivibe@{number}", "--force")
-        root = assert_registration(number)
-        assert payload(root)[1] == npm_skill
-        assert (root / ADAPTER).read_bytes() == (npm / ADAPTER).read_bytes()
-        with Rpc(peers, hosted=hosted, netns=netns) as rpc:
-            discovery(rpc, adapter=True, skill=True)
-            skill_call(rpc, root / SKILL)
-    for number in (version, previous):
-        assert f"/elivibe/-/elivibe-{number}.tgz" in sink.registry_hits, (
-            sink.registry_hits
-        )
-
-    native("plugin", "uninstall", "elivibe")
-    assert_registration()
     assert not installed.exists(), "the npm installation remained after removal"
-    with Rpc(peers, hosted=hosted, netns=netns) as rpc:
-        discovery(rpc)
-        step(rpc, "Answer after removing the npm plugin.", "SMOKE_ADAPTER_REMOVED")
 
     standalone = Path.home() / ".agents" / SKILL
     standalone.parent.mkdir(parents=True)
@@ -1081,9 +1111,7 @@ def exercise(sink, peers, *, hosted, netns):
         "normal work retained its tools. Original report and exact follow-up context remained in the session."
     )
     print(
-        f"Payload/discovery: native link and standalone skill, real npm pack via loopback registry "
-        f"(fresh {version}; fixture {previous} → {version} → {previous}), "
-        "uninstall; kept user files and unrelated registration."
+        "Native link and standalone skill discovery/removal passed; consumer files preserved."
     )
     if peers:
         print(

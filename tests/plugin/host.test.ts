@@ -9,7 +9,7 @@ const explanation = "## eliVibe explanation\nThe targeted test does not exercise
 type Content = { type: "text"; text: string }[];
 type Message = { role: string; content: string | Content; attribution?: string; timestamp?: number; [key: string]: unknown };
 type Entry = { type: string; id: string; message?: Message; [key: string]: unknown };
-type Hooks = { messages?: Message[]; message?: Omit<Message, "role">; block?: boolean; reason?: string };
+type Hooks = { messages?: Message[]; message?: Omit<Message, "role">; block?: boolean; reason?: string; systemPrompt?: string[] };
 type Completion = NonNullable<Parameters<ExtensionAPI["registerCommand"]>[1]["getArgumentCompletions"]>;
 
 function host() {
@@ -22,7 +22,8 @@ function host() {
   const messages: Message[] = [];
   const notices: string[] = [];
   const submissions: { prompt: string; options: unknown }[] = [];
-  const requests: Message[][] = [];
+  const requests: { messages: Message[]; systemPrompt: string[] }[] = [];
+  let systemPrompt = ["host policy"];
   const events = new Map<string, (event: object, context: object) => Hooks | undefined>();
   let command: (args: string, ctx: object) => Promise<void>;
   let complete: Completion;
@@ -49,17 +50,21 @@ function host() {
   }
   function start(text: string, { actual = text, attribution = "user", steering = false } = {}) {
     const setup = emit("before_agent_start", { reason: "prompt", prompt: text, systemPrompt: ["host policy"] });
+    systemPrompt = setup?.systemPrompt ?? ["host policy"];
     push({ role: "user", content: actual, attribution, steering });
     if (setup?.message) push({ ...setup.message, role: "custom" } as Message);
     return wire();
   }
   function wire(payload = messages) {
+    const priorAborts = aborts;
     const provider = emit("context", { messages: payload })?.messages ?? payload;
-    requests.push([...provider]);
-    return provider.at(-1)?.role === "developer" ? String(provider.at(-1)?.content) : undefined;
+    if (aborts !== priorAborts) return;
+    requests.push({ messages: [...provider], systemPrompt });
+    return systemPrompt[1];
   }
   function end(willContinue = false) {
     emit("agent_end", { willContinue, messages });
+    if (!willContinue) systemPrompt = ["host policy"];
   }
   send = text => { start(text); answer(explanation); end(); };
   elivibe({
@@ -77,13 +82,22 @@ function host() {
   } as unknown as ExtensionAPI);
   emit("session_start");
   return {
-    emit, ctx, messages, notices, submissions, requests, answer, start, wire, end,
+    emit, ctx, messages, notices, submissions, requests, answer, start, wire, end, push,
+    policy: () => requests.at(-1)?.systemPrompt[1] ?? "",
     command: (args = "") => command(args, ctx), complete: (prefix: string) => complete(prefix),
     get branch() { return branch; }, get aborts() { return aborts; },
     set model(value: string) { model = value; }, set isIdle(value: boolean) { isIdle = value; },
     set pending(value: boolean) { pending = value; }, set select(value: string | undefined) { select = value; },
     set send(value: typeof send) { send = value; },
-    switchBranch(value: Entry[], event = "session_tree") { branch = value; emit(event); },
+    switchBranch(value: Entry[], event = "session_tree") {
+      branch = value;
+      messages.length = 0;
+      for (const entry of value) {
+        if (entry.message) messages.push(entry.message);
+        else if (entry.type === "custom_message") messages.push(entry as unknown as Message);
+      }
+      emit(event);
+    },
     switchSession() { session = "b"; branch = []; messages.length = 0; emit("session_switch"); },
   };
 }
@@ -124,17 +138,17 @@ test("explicit requests work in Off and Full and use attributed ordinary context
   await h.command();
   assert.deepEqual(h.submissions[0], { prompt: "/elivibe", options: { attribution: "user" } });
   const provider = h.requests.at(-1)!;
-  const policy = provider.at(-1)!;
-  assert.equal(policy.role, "developer");
-  assert.equal(policy.attribution, "agent");
-  assert.match(String(policy.content), /explicit explanation.*selected source is assistant message 1/s);
-  assert.ok(!String(policy.content).includes(source));
-  assert.deepEqual(provider[0], h.branch.find(entry => entry.id === id)?.message);
-  assert.ok(!provider.some(message => message.customType === "elivibe-turn"));
+  assert.equal(provider.systemPrompt[0], "host policy");
+  assert.match(h.policy(), /explicit explanation.*selected source is assistant message 1/s);
+  assert.ok(!h.policy().includes(source));
+  assert.deepEqual(provider.messages[0], h.branch.find(entry => entry.id === id)?.message);
+  assert.equal(provider.messages.at(-1)?.role, "user");
+  assert.equal(provider.messages.at(-1)?.attribution, "user");
+  assert.ok(!provider.messages.some(message => message.customType === "elivibe-turn"));
   await h.command("full");
   await h.command("explain mode differences");
   assert.equal(h.submissions.at(-1)?.prompt, "/elivibe explain mode differences");
-  assert.match(String(h.requests.at(-1)?.at(-1)?.content), /explicit explanation/);
+  assert.match(h.policy(), /explicit explanation/);
   await h.command("status");
   assert.match(h.notices.at(-1)!, /full mode/);
 });
@@ -144,20 +158,34 @@ test("More keeps the source through repeated explanations, follow-up, and branch
   h.answer();
   const untreated = [...h.branch];
   await h.command();
-  h.start("Why? ");
+  h.start("Tell me more about that");
   h.answer("The fixture is not the deployed service.");
   h.end();
   await h.command("more");
-  assert.match(String(h.requests.at(-1)?.at(-1)?.content), /selected source is assistant message 1.*Deepen assistant message 2/s);
+  assert.match(h.policy(), /selected source is assistant message 1.*Deepen assistant message 2/s);
   await h.command("more");
-  assert.match(String(h.requests.at(-1)?.at(-1)?.content), /selected source is assistant message 1.*Deepen assistant message 4/s);
+  assert.match(h.policy(), /selected source is assistant message 1.*Deepen assistant message 4/s);
   const treated = [...h.branch];
   h.switchBranch(untreated);
   await h.command("more");
   assert.match(h.notices.at(-1)!, /No eliVibe explanation/);
   h.switchBranch(treated);
   await h.command("more");
-  assert.match(String(h.requests.at(-1)?.at(-1)?.content), /selected source is assistant message 1.*Deepen assistant message 5/s);
+  assert.match(h.policy(), /selected source is assistant message 1.*Deepen assistant message 5/s);
+});
+
+test("a new tool-backed handoff does not replace the source of More", async () => {
+  const h = host();
+  h.answer();
+  await h.command();
+  h.start("Work on a different task");
+  h.push({ role: "toolResult", content: "New results" });
+  h.answer("New report.");
+  h.end();
+  await h.command("more");
+  assert.match(h.policy(), /selected source is assistant message 1.*Deepen assistant message 2/s);
+  await h.command();
+  assert.match(h.policy(), /selected source is assistant message 3/);
 });
 
 test("in-turn automatic teaching honors delivered payload and never adds a turn", async () => {
@@ -169,11 +197,15 @@ test("in-turn automatic teaching honors delivered payload and never adds a turn"
   h.answer(`${source}\n\n${explanation}`); h.end();
   assert.equal(h.submissions.length, 0);
   await h.command("more");
-  assert.match(String(h.requests.at(-1)?.at(-1)?.content), /selected source is assistant message 2.*Deepen assistant message 2/s);
+  assert.match(h.policy(), /selected source is assistant message 2.*Deepen assistant message 2/s);
   await h.command("full");
-  assert.equal(h.start("Fix the parser", { actual: "Return only JSON" }), undefined);
-  assert.equal(h.start("Fix the parser", { attribution: "agent" }), undefined);
-  assert.equal(h.start("Fix the parser", { steering: true }), undefined);
+  assert.equal(h.start("Return only JSON"), undefined);
+  const appliedEntries = () => h.branch.filter(entry => entry.customType === "elivibe-applied").length;
+  const count = appliedEntries();
+  h.start("Fix the parser", { actual: "Return only JSON" });
+  h.start("Fix the parser", { attribution: "agent" });
+  h.start("Fix the parser", { steering: true });
+  assert.equal(appliedEntries(), count);
   assert.match(h.start("Fix the parser\n> Return only JSON")!, /Full teaching policy/);
 });
 
@@ -246,7 +278,9 @@ test("a request whose source disappears in preparation cannot substitute a diffe
   h.answer();
   h.send = text => {
     h.messages.length = 0;
-    assert.match(h.start(text)!, /no longer present.*ask the user to paste it.*Do not substitute/s);
+    assert.equal(h.start(text), undefined);
+    assert.match(h.notices.at(-1)!, /selected handoff changed.*Paste the handoff/);
+    assert.equal(h.requests.length, 0);
     assert.equal(h.emit("tool_call")?.block, true);
     h.end();
   };

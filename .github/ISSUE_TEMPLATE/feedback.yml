@@ -1,5 +1,5 @@
 name: eliVibe feedback
-description: Report an install or command problem, or suggest a small improvement.
+description: Tell us what an explanation helped you understand, what missed, or where installation got stuck.
 body:
   - type: markdown
     attributes:
@@ -9,15 +9,15 @@ body:
     id: environment
     attributes:
       label: Version and environment
-      description: Include the eliVibe release or commit, host/version, and operating system.
+      description: If known, include your eliVibe version, host and operating system. No local paths or account details.
       placeholder: v0.1.0 standalone skill, OMP 19.2.1, Linux x64
     validations:
-      required: true
+      required: false
   - type: textarea
     id: feedback
     attributes:
-      label: What were you trying to do?
-      description: Include the exact command or mode if relevant, what you expected, and what happened. For a suggestion, say what would make the step clearer.
+      label: What helped or got in the way?
+      description: Was an explanation helpful, confusing, repetitive or misleading? Name the concept and what you can now explain, or what is still unclear. For an install or command issue, say which step and what happened.
     validations:
       required: true
   - type: textarea

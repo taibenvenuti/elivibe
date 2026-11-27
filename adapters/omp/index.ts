@@ -19,7 +19,7 @@ const HELP = [
 const BUSY = "Wait for OMP to finish, then try /elivibe again.";
 const NO_SOURCE = "No completed handoff is available in this context. Ask OMP for a handoff or use /elivibe with a specific question.";
 const NO_EXPLANATION = "No eliVibe explanation with its source is available in this context. Run /elivibe or ask a specific question first.";
-const NO_MODEL = "Select or sign in to an active OMP model with /model, then retry.";
+const NO_MODEL = "Use OMP’s /login or /model to sign in or select an active model, then retry.";
 
 type Message = SessionMessageEntry["message"];
 type Assistant = Extract<Message, { role: "assistant" }>;
@@ -39,8 +39,9 @@ type Run = {
   id: string;
   agent: string;
   session: string;
-  config: Config;
   explicit?: Pending;
+  sourcePosition?: number;
+  interpretationPosition?: number;
   baseline: string | null;
   applied: boolean;
 };
@@ -61,9 +62,8 @@ function history(branch: readonly Entry[]) {
     && typeof entry.data === "string" ? [entry.data] : []));
   const answers = new Map<string, Answer>();
   let source: Answer | undefined;
-  let interpretation: Answer | undefined;
+  let lesson: { source?: Answer; interpretation: Answer } | undefined;
   let turn: { kind?: unknown; sourceId?: unknown } | undefined;
-  let user: string | undefined;
   let usedTools = false;
   let standalone = false;
   for (const entry of branch) {
@@ -75,14 +75,12 @@ function history(branch: readonly Entry[]) {
     }
     if (entry.type === "custom_message" && entry.attribution === "user" && entry.display) {
       standalone = entry.customType === "skill-prompt" && (entry.details as { name?: unknown } | undefined)?.name === "elivibe";
-      user = undefined;
       turn = undefined;
       usedTools = false;
     }
     if (entry.type !== "message") continue;
     const message = entry.message;
     if (message.role === "user") {
-      user = authoredText(message);
       standalone = false;
       turn = undefined;
       usedTools = false;
@@ -91,24 +89,28 @@ function history(branch: readonly Entry[]) {
     if (message.role !== "assistant" || standalone) continue;
     const text = stoppedText(message);
     if (!text) continue;
-    const answer = { id: entry.id, message };
+    const answer: Answer = { id: entry.id, message };
     answers.set(entry.id, answer);
     if (turn?.kind === "explicit") {
-      source = typeof turn.sourceId === "string" ? answers.get(turn.sourceId) : undefined;
-      interpretation = answer;
-    } else if (!(interpretation && !usedTools && user?.trimEnd().endsWith("?"))) {
+      lesson = { source: typeof turn.sourceId === "string" ? answers.get(turn.sourceId) : undefined, interpretation: answer };
+    } else {
       answer.supplemented = turn?.kind === "automatic" && hasExplanationHeading(text);
-      source = answer;
-      interpretation = answer.supplemented ? answer : undefined;
+      if (answer.supplemented) lesson = { source: answer, interpretation: answer };
+      // Without tool activity a subsequent reply may be ordinary discussion, not a new handoff.
+      if (!lesson || !source || usedTools || answer.supplemented) source = answer;
     }
   }
+  const firstKept = retainedStart(branch);
+  const retained = (answer: Answer | undefined) => !answer || branch.findIndex(entry => entry.id === answer.id) >= firstKept;
+  return { source, lesson, retained };
+}
+
+function retainedStart(branch: readonly Entry[]): number {
   const compaction = branch.findLastIndex(entry => entry.type === "compaction");
   const boundary = branch[compaction];
   const firstKept = boundary?.type === "compaction" && boundary.firstKeptEntryId
     ? branch.findIndex(entry => entry.id === boundary.firstKeptEntryId) : -1;
-  const retained = (answer: Answer | undefined) => !answer || branch.findIndex(entry => entry.id === answer.id)
-    >= (firstKept >= 0 ? firstKept : compaction + 1);
-  return { source, interpretation, retained };
+  return firstKept >= 0 ? firstKept : compaction + 1;
 }
 
 function preference(ctx: ExtensionContext): Config {
@@ -184,12 +186,39 @@ export default function elivibe(pi: ExtensionAPI): void {
       ctx.abort();
       return;
     }
-    if (!explicit && config.mode !== "light" && config.mode !== "full") {
+    const mode = config.mode;
+    if (!explicit && ((mode !== "light" && mode !== "full") || letsReplyStand(event.prompt)
+      || event.prompt.startsWith("[IMPORTANT: User invoked the \"elivibe\" skill;"))) {
       run = undefined;
       return;
     }
-    run = { id: randomUUID(), agent: ctx.agent.id, session, config, explicit, baseline: ctx.sessionManager.getLeafId(), applied: false };
+    let sourcePosition: number | undefined;
+    let interpretationPosition: number | undefined;
+    let instructions: string;
+    if (explicit) {
+      const retained = branch.slice(retainedStart(branch)).flatMap(entry => entry.type === "message" ? [entry.message] : []);
+      sourcePosition = explicit.source && answerPosition(retained, explicit.source);
+      interpretationPosition = explicit.interpretation && answerPosition(retained, explicit.interpretation);
+      if ((explicit.source && sourcePosition === undefined) || (explicit.interpretation && interpretationPosition === undefined)) {
+        ctx.ui.notify(explicit.intent === "more" ? NO_EXPLANATION : NO_SOURCE, "info");
+        ctx.abort();
+        return;
+      }
+      instructions = teachingPolicy("explicit", config.depth, methodology);
+      if (sourcePosition !== undefined) instructions += `\nThe selected source is assistant message ${sourcePosition} (count only assistant messages from the beginning of this context).`;
+      if (interpretationPosition !== undefined) instructions += `\nDeepen assistant message ${interpretationPosition} without treating the explanation as verified evidence.`;
+      else if (explicit.intent === "explain") instructions += "\nExplain the selected technical handoff; do not rewrite it.";
+      else instructions += "\nAnswer the requested question or focus. Use source context only insofar as it is relevant.";
+      if (sourcePosition !== undefined && explicit.source?.supplemented) instructions += "\nUse the report before the eliVibe heading as the source; the following section is supplementary interpretation.";
+    } else {
+      if (mode !== "light" && mode !== "full") return;
+      instructions = teachingPolicy(mode, config.depth, methodology);
+    }
+    run = { id: randomUUID(), agent: ctx.agent.id, session, explicit, sourcePosition, interpretationPosition,
+      baseline: ctx.sessionManager.getLeafId(), applied: false };
     return {
+      // In-context developer messages become user messages on chat routes without developer-role support.
+      systemPrompt: [...event.systemPrompt, instructions],
       message: {
         customType: TURN, content: "", display: false, excludeFromContext: true, attribution: "agent",
         details: { id: run.id, kind: explicit ? "explicit" : "automatic", sourceId: explicit?.source?.id },
@@ -222,29 +251,21 @@ export default function elivibe(pi: ExtensionAPI): void {
       && (message.details as { id?: unknown } | undefined)?.id === current.id);
     const text = latestUser >= 0 ? authoredText(event.messages[latestUser]) : undefined;
     const latest = event.messages[latestUser];
-    let instructions: string;
+
     if (request) {
       if (text !== request.prompt || (latest.role === "user" && latest.steering)
         || (!request.accepted && (pending !== request || marker <= latestUser))) {
         ctx.abort();
         return withoutMarkers;
       }
-      const source = request.source && answerPosition(event.messages, request.source);
-      const interpretation = request.interpretation && answerPosition(event.messages, request.interpretation);
-      instructions = teachingPolicy("explicit", current.config.depth, methodology);
-      if ((request.source && source === undefined) || (request.interpretation && interpretation === undefined)) {
-        instructions += "\nThe selected source or explanation is no longer present in this request's context. Say it is unavailable; ask the user to paste it. Do not substitute a different handoff or infer missing evidence.";
-      } else {
-        if (source !== undefined) instructions += `\nThe selected source is assistant message ${source} (count only assistant messages from the beginning of this context).`;
-        if (interpretation !== undefined) instructions += `\nDeepen assistant message ${interpretation} without treating the explanation as verified evidence.`;
-        else if (request.intent === "explain") instructions += "\nExplain the selected technical handoff; do not rewrite it.";
-        else instructions += "\nAnswer the requested question or focus. Use source context only insofar as it is relevant.";
-        if (source !== undefined && request.source?.supplemented) instructions += "\nUse the report before the eliVibe heading as the source; the following section is supplementary interpretation.";
+      if ((request.source && answerPosition(event.messages, request.source) !== current.sourcePosition)
+        || (request.interpretation && answerPosition(event.messages, request.interpretation) !== current.interpretationPosition)) {
+        ctx.ui.notify("The selected handoff changed during preparation. Paste the handoff or retry /elivibe.", "info");
+        ctx.abort();
+        return withoutMarkers;
       }
       request.accepted = true;
     } else {
-      const { mode, depth } = current.config;
-      if (mode !== "light" && mode !== "full") return withoutMarkers;
       if (text === undefined || marker <= latestUser || letsReplyStand(text)) return withoutMarkers;
       const leaf = ctx.sessionManager.getBranch();
       const anchor = current.baseline ? leaf.findIndex(entry => entry.id === current.baseline) : -1;
@@ -252,7 +273,6 @@ export default function elivibe(pi: ExtensionAPI): void {
       const users = leaf.slice(anchor + 1).filter(entry => entry.type === "message" && entry.message.role === "user");
       if (users.length > 1) return withoutMarkers;
       if (latest.role === "user" && latest.steering) return withoutMarkers;
-      instructions = teachingPolicy(mode, depth, methodology);
     }
 
     if (!current.applied) {
@@ -263,9 +283,7 @@ export default function elivibe(pi: ExtensionAPI): void {
         // Teaching still works if the host cannot persist follow-up identity.
       }
     }
-    return {
-      messages: [...messages, { role: "developer", content: instructions, attribution: "agent", timestamp: Date.now() }],
-    };
+    return withoutMarkers;
   });
 
   // OMP's pre-execution veto is turn-local. It does not remove provider tool schemas
@@ -345,7 +363,9 @@ export default function elivibe(pi: ExtensionAPI): void {
         notify(BUSY);
         return;
       }
-      const { source, interpretation, retained } = history(ctx.sessionManager.getBranch());
+      const { source: handoff, lesson, retained } = history(ctx.sessionManager.getBranch());
+      const source = command.kind === "more" ? lesson?.source : handoff;
+      const interpretation = lesson?.interpretation;
       if (command.kind === "explain" && (!source || !retained(source))) {
         notify(NO_SOURCE);
         return;
@@ -370,7 +390,7 @@ export default function elivibe(pi: ExtensionAPI): void {
       };
       pending = request;
       try {
-        // The slash request is user-authored; scaffolding is an agent-attributed developer message.
+        // Only the actual slash request is user-authored; policy is added by the host hook.
         await pi.sendUserMessage(request.prompt, { attribution: "user" });
       } catch {
         if (pending === request && request.session === ctx.sessionManager.getSessionId() && !request.accepted) {
