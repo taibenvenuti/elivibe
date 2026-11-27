@@ -24,15 +24,17 @@ Base: `15d6d849677b1509396352ff3e5348a4bff33852`, [green main CI](https://github
 
 ### 1.1.0 review artifacts (not released)
 
-Release inputs: signed `7de7e81a9d9cd0e0ef77893d2a92e04378cf7931`. Local output: `results/1.1.0/7de7e81a9d9cd0e0ef77893d2a92e04378cf7931/` (ignored, not a public download). [Rebuild from the reviewed commit](release.md#version-and-contents). The ZIP contains the canonical skill, explicit Codex policy, README and license. Native and npm each contain the OMP adapter, core, skill, manifest, README and license. A directory ZIP is separate: Codex manifest, skill and policy, inert icon, plugin README and license. All ship the same skill bytes; the independent offline npm pack also matched. Review found Git's ZIP timestamps varied by builder timezone; the corrected, UTC-normalized recipe reproduced from Helsinki and New York settings. The distributed guides point at `b900c79` with the source-identification corrections. No portal validation or submission.
+Signed distribution inputs: `0b28b8fea5ce76b4f240e35b780e71f02d98b5b7`; local output `results/1.1.0/0b28b8fea5ce76b4f240e35b780e71f02d98b5b7/` (ignored, not a public download). [Rebuild from the reviewed commit](release.md#version-and-contents). The standalone ZIP contains the canonical skill, explicit Codex policy, README and license. Native and npm each contain the OMP adapter, core, skill, manifest, README and license. A directory ZIP is separate: Codex manifest, skill and policy, inert icon, plugin README and license. All ship the same skill bytes; no portal validation or submission.
+
+The directory recipe uses UTC to eliminate timezone-dependent ZIP timestamps. The packaged installation guide at `5012233` includes the verified Claude same-version reinstall. See [draft PR #6](https://github.com/taibenvenuti/elivibe/pull/6) for the exact final head, rebuild comparison and hosted checks. Do not reuse candidate evidence for an untested future merge.
 
 | File | SHA-256 |
 |---|---|
-| `github/elivibe-1.1.0.zip` | `9c2c5d1203d5c91ac71229bda43ec826198d9fd741cbdb99f9475ab622cb0e6c` |
-| `github/elivibe-omp-1.1.0.tar.gz` | `84dd7f71cd973075dcffb0685861da22c52832974af7e90048173fac9c11f366` |
-| `github/SHA256SUMS` | `e58c38482abb2c7e2ca0303064054ae73359bb9e554d42e576708675f24754bc` |
-| `npm/elivibe-1.1.0.tgz` | `26f647f90d1cf29a229172c8b516e4d7c8da76d4039536284e522319797019bf` |
-| `directory/elivibe-codex-1.1.0.zip` (not a GitHub release asset) | `0a273d97afd3ea249a06e81995382271a02ee385e77e967e34fc51c0e27b1d81` |
+| `github/elivibe-1.1.0.zip` | `c2eb83005123dfb34080e20be722a180ed2fb808e1c3a8c9d5e0959989beba5e` |
+| `github/elivibe-omp-1.1.0.tar.gz` | `ee9f3646d6e0416c7b7acad04c2712880e47b722865f2a89fcc52920b817654a` |
+| `github/SHA256SUMS` | `192a758a40302d18f3313bd546ab1ef14688c28de1e7a2cd5853a08854c52685` |
+| `npm/elivibe-1.1.0.tgz` | `04fc6665e6db3ac3298f8c587a5285e3abf70045488b6ddcce060dcfe7788e52` |
+| `directory/elivibe-codex-1.1.0.zip` (not a GitHub release asset) | `0df433dee8d6523ead12a74f5cd27dd202c81d22ff37fce60123f9ce42d687b7` |
 
 ## v1.0.0 release record
 
