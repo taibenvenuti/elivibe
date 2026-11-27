@@ -1,12 +1,12 @@
 # Reviewing and releasing eliVibe
 
-The [v0.1.0 GitHub release](https://github.com/taibenvenuti/elivibe/releases/tag/v0.1.0) shipped two archives and `SHA256SUMS`. Keep its tag and bytes unchanged. [Status](status.md) identifies the candidate and which distribution checks actually ran. Do not advertise GitHub source installation on an old ref, or npm installation before a version resolves and works.
+[v1.0.0](https://github.com/taibenvenuti/elivibe/releases/tag/v1.0.0) is the stable GitHub release. It and [v0.1.0](https://github.com/taibenvenuti/elivibe/releases/tag/v0.1.0) each shipped two archives and `SHA256SUMS`; keep both tags and their assets unchanged. [Status](status.md) identifies the release commit and which distribution checks actually ran. Do not advertise GitHub source installation on an old ref, or npm installation before a version resolves and works.
 
 ## Version and contents
 
 `package.json` is the product manifest for Git, npm and the native archive. Keep its version, lockfiles, tag and archive names aligned. The [explicit semantic-release policy](../dev/release-policy.mjs) uses `fix` → patch, `feat` → minor and `!`/`BREAKING CHANGE` → major, including before 1.0. Never run semantic-release with its default plugins or mistake the untagged fixture result for a decision on this repository.
 
-The host-managed **1.0.0 candidate** breaks the v0.1.0 contract: it replaces report-only inference with ordinary OMP conversation and retires isolated model, judge and route-approval controls. Use `feat(omp)!: explain handoffs in the host conversation` as the squash subject. Explain that disclosure change in the squash body, release notes and migration guide. Check the policy decision on the actual final main history before tagging.
+The host-managed **v1.0.0 release** broke the v0.1.0 contract: it replaced report-only inference with ordinary OMP conversation and retired isolated model, judge and route-approval controls. The reviewed squash subject was `feat(omp)!: explain handoffs in the host conversation`; the disclosure change was recorded in the squash body, release notes and migration guide. Always check the policy decision on the actual final main history before tagging.
 
 From a **clean checkout of the exact reviewed main commit** with its hosted checks complete, prepare artifacts outside the repository. The steps below use the same dedicated Bash shell (`set -euo pipefail`); stop on any failed command or unexpected remote result. Fill in review inputs from the approval record, not from a moving ref or an earlier candidate.
 
@@ -41,8 +41,8 @@ The owner separately authorizes the merge of the reviewed PR head. Require a rea
 
 ```bash
 repo=taibenvenuti/elivibe
-subject='feat(omp)!: explain handoffs in the host conversation'
-: "${pr:?approved PR number}" "${head:?approved full PR head SHA}" "${squash_body:?approved squash body file}"
+: "${pr:?approved PR number}" "${head:?approved full PR head SHA}"
+: "${subject:?approved Conventional Commit squash subject}" "${squash_body:?approved squash body file}"
 gh pr view "$pr" -R "$repo" --json baseRefName,headRefOid,isDraft,title,mergeStateStatus |
   jq -e --arg head "$head" --arg title "$subject" \
     '.baseRefName == "main" and .headRefOid == $head and .title == $title and
