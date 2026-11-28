@@ -1,17 +1,17 @@
 {
   "name": "elivibe",
   "displayName": "eliVibe",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "description": "Conceptual explanations for technical handoffs in Claude Code.",
   "author": {
     "name": "Tai Benvenuti"
   },
-  "homepage": "https://github.com/taibenvenuti/elivibe/blob/v1.1.0/README.md",
+  "homepage": "https://github.com/taibenvenuti/elivibe#readme",
   "repository": "https://github.com/taibenvenuti/elivibe",
-  "license": "MIT",
+  "license": "GPL-3.0-only",
   "skills": "./elivibe",
   "icon": "./icon.png",
   "documentationUrl": "https://github.com/taibenvenuti/elivibe/blob/v1.1.0/docs/installation.md",
   "supportUrl": "https://github.com/taibenvenuti/elivibe/issues",
-  "privacyPolicyUrl": "https://github.com/taibenvenuti/elivibe/blob/v1.1.0/docs/privacy.md"
+  "privacyPolicyUrl": "https://github.com/taibenvenuti/elivibe/blob/main/docs/privacy.md"
 }

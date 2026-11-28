@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Tai Benvenuti
+// SPDX-License-Identifier: GPL-3.0-only
+
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";

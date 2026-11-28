@@ -2,6 +2,8 @@
 
 eliVibe ships one teaching skill for Codex, Claude Code, and Oh My Pi (OMP). Codex and Claude Code use declarative plugins or a standalone skill. Only OMP has an executable adapter. See [installation](installation.md) for version-specific routes and the [maintained status ledger](https://github.com/taibenvenuti/elivibe/blob/main/docs/status.md) for exact tested revisions, public availability, and separate acquisition evidence.
 
+The evidence below is for the cited historical revisions, including the published MIT v1.1.0 release. The GPL-3.0-only 2.0.0 candidate changes licensing and package contents, not intended runtime behavior. It has no established public installs, live walkthroughs or vendor listings; v1.1.0 results don't verify the new package bytes or source delivery. Use [v1.1.0](installation.md) for public installation or rollback.
+
 ## Tested combinations at GitHub v1.1.0
 
 These release-time lifecycle checks used scripted model replies. The [live walkthroughs](#current-live-coverage) used newer Codex and Claude Code CLIs and the same OMP 19.2.1.
@@ -40,7 +42,7 @@ The Codex test used [App Server](https://developers.openai.com/codex/app-server/
 
 ## CLI marketplaces versus vendor directories
 
-Adding this project's marketplace source to a CLI is not being listed by the vendor. Vendor submission and approval are outside the 1.1.0 release; the [maintained status ledger](https://github.com/taibenvenuti/elivibe/blob/main/docs/status.md) tracks distribution evidence separately.
+Adding this project's marketplace source to a CLI is not being listed by the vendor. Vendor submission and approval were outside the 1.1.0 release; whether either directory accepts GPL-3.0-only artifacts on compatible terms has not been established. The [status ledger](status.md) tracks actual distribution evidence separately; see the [distribution requirements](release.md#license-and-corresponding-source) before any submission.
 
 | Directory | Documented path, separate from CLI install |
 |---|---|

@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-only
+# Copyright (c) 2026 Tai Benvenuti
+
 """Exercise verified archives in sandboxed Linux OMP with synthetic inference."""
 
 import argparse
@@ -32,6 +35,8 @@ PRIMARY = "smoke-primary"
 SKILL = Path("skills/elivibe/SKILL.md")
 CODEX_SKILL = SKILL.parent / "agents/openai.yaml"
 CODEX_POLICY = b"policy:\n  allow_implicit_invocation: false\n"
+LICENSE_ID = "GPL-3.0-only"
+LICENSE_SHA256 = "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
 ADAPTER = Path("adapters/omp/index.ts")
 CORE = Path("core/index.ts")
 EXPLICIT = "eliVibe explicit explanation."
@@ -648,13 +653,24 @@ def payload(root):
     }
     assert files.keys() in (expected, expected | {Path("NOTICE")}), root
     manifest = json.loads(files[Path("package.json")])
-    assert manifest["name"] == "elivibe" and manifest["license"] == "MIT"
+    assert manifest["name"] == "elivibe" and manifest["license"] == LICENSE_ID
+    assert hashlib.sha256(files[Path("LICENSE")]).hexdigest() == LICENSE_SHA256
     assert manifest.get("omp") == {"extensions": [f"./{ADAPTER}"]}, manifest
     assert not manifest.get("private") and not manifest.get("dependencies"), manifest
     assert not manifest.get("scripts"), manifest
     skill = files[SKILL]
-    assert skill.startswith(b"---\n")
-    assert b"disable-model-invocation: true" in skill.split(b"---", 2)[1].splitlines()
+    lines = skill.decode("utf-8").splitlines()
+    assert len(lines) >= 7
+    assert lines[:2] == ["---", "name: elivibe"]
+    assert lines[2].startswith("description: ")
+    assert lines[2].removeprefix("description: ").strip()
+    assert lines[3:7] == [
+        "disable-model-invocation: true",
+        f"license: {LICENSE_ID}",
+        "# Copyright (c) 2026 Tai Benvenuti",
+        "---",
+    ]
+    assert any(line.strip() for line in lines[7:])
     return manifest, files
 
 
@@ -910,7 +926,13 @@ def exercise(sink, peers, *, hosted, netns):
     portable_skill = "elivibe/SKILL.md"
     portable_codex = "elivibe/agents/openai.yaml"
     with ZipFile("/inputs/standalone.zip") as archive:
-        expected = [portable_skill, portable_codex, "LICENSE", "README.md"]
+        expected = [
+            portable_skill,
+            portable_codex,
+            "elivibe/LICENSE",
+            "LICENSE",
+            "README.md",
+        ]
         if Path("NOTICE") in native_files:
             expected.append("NOTICE")
             assert archive.read("NOTICE") == native_files[Path("NOTICE")]
@@ -918,6 +940,7 @@ def exercise(sink, peers, *, hosted, netns):
         assert archive.read(portable_skill) == native_skill
         assert archive.read(portable_codex) == CODEX_POLICY
         assert archive.read("LICENSE") == native_files[Path("LICENSE")]
+        assert archive.read("elivibe/LICENSE") == native_files[Path("LICENSE")]
         assert archive.read("README.md") == native_files[Path("README.md")]
     _, frontmatter, body = native_skill.decode().split("---", 2)
     description = next(
@@ -932,13 +955,20 @@ def exercise(sink, peers, *, hosted, netns):
     for path, data in native_files.items():
         assert (source / path).read_bytes() == data, path
     for path in (
-        ".agents/plugins/marketplace.json",
-        ".claude-plugin/marketplace.json",
         "skills/.codex-plugin/plugin.json",
         "skills/.claude-plugin/plugin.json",
     ):
+        assert json.loads((source / path).read_bytes())["license"] == LICENSE_ID, path
+    for path in (
+        ".agents/plugins/marketplace.json",
+        ".claude-plugin/marketplace.json",
+        "skills/icon.png",
+        "skills/icon.svg",
+    ):
         assert (source / path).is_file(), path
     assert (source / CODEX_SKILL).read_bytes() == CODEX_POLICY
+    for path in (Path("skills/LICENSE"), SKILL.parent / "LICENSE"):
+        assert (source / path).read_bytes() == native_files[Path("LICENSE")], path
     native("plugin", "link", str(source))
     assert assert_registration(npm_manifest["version"]).samefile(source)
     with Rpc(peers, hosted=hosted, netns=netns) as rpc:

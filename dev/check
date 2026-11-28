@@ -1,4 +1,7 @@
 #!/bin/sh
+# Copyright (c) 2026 Tai Benvenuti
+# SPDX-License-Identifier: GPL-3.0-only
+
 set -eu
 cd "$(dirname "$0")/.."
 

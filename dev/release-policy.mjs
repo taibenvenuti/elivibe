@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Tai Benvenuti
+// SPDX-License-Identifier: GPL-3.0-only
+
 const preset = "conventionalcommits";
 
 // Load this policy explicitly; a default semantic-release CLI invocation is not a release path.

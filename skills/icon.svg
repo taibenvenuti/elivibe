@@ -1,0 +1,7 @@
+<!-- Copyright (c) 2026 Tai Benvenuti; SPDX-License-Identifier: GPL-3.0-only -->
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="12" fill="#222"/>
+  <path d="M14 12h20l9 9v30H14z M34 12v9h9 M20 26h15m-15 6h9m-9 6h5" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M31 34h22v16H42l-7 6v-6h-4z" fill="#fff" stroke="#222" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M37 40h10m-10 4h6" fill="none" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+</svg>

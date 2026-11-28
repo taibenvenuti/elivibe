@@ -12,3 +12,9 @@ No development setup is needed to [leave feedback](https://github.com/taibenvenu
 For a PR, start with [repository guidance](AGENTS.md) and [development setup and focused checks](docs/development.md). Put changes to teaching guidance in the [canonical skill](skills/elivibe/SKILL.md). Keep executable integration in the OMP adapter and Codex and Claude Code packages declarative. Update the affected documentation. Use a Conventional Commit squash PR title (for example, `fix(omp): preserve the source handoff`), and follow the [release policy](docs/release.md) and [community standards](CODE_OF_CONDUCT.md).
 
 Describe what changed, the relevant checks you ran, what they establish, and what remains unverified. Separate synthetic evidence from live behavior. Use original synthetic fixtures or material you have clear permission to contribute; leave out credentials, customer data, restricted source, and raw reports or transcripts.
+
+## Licensing contributions
+
+This branch's project-owned material is [GPL-3.0-only](LICENSE); the published MIT releases are unchanged. There is no commercial licensing program. Feedback and issue reports are welcome. Check with the maintainer before starting substantive external work.
+
+To preserve the option of licensing future versions on different terms, the maintainer should put a separate, reviewed nonexclusive contributor license agreement (CLA) in place before substantive external work starts. The contributor would retain copyright while granting the necessary rights to sublicense on other terms and transfer the license. Copyright assignment would instead transfer ownership. A Developer Certificate of Origin (DCO) attests to the right to submit; it does not itself grant separate relicensing rights. Inbound-equals-outbound accepts contributions under the project's GPL terms only and does not preserve that separate option. A CLA adds review and signing friction; opening a PR is not assent to one.

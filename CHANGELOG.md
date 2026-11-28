@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.0.0 (unreleased)
+
+- License project-owned code, skill, artwork, documentation, tests, and tools under GPL-3.0-only. Distributions include the license and copyright notice.
+- No runtime behavior changes. The published v0.1.0, v1.0.0, and v1.1.0 releases remain under MIT.
+
 ## [v1.1.0](https://github.com/taibenvenuti/elivibe/releases/tag/v1.1.0) — 2026-11-28
 
 Explain a technical handoff without replacing it. All three hosts use the same teaching skill in the ordinary host conversation. Add a focus or a desired depth to the request, or ask a follow-up in chat. If a request needs a handoff that is not in view, provide it rather than asking eliVibe to reconstruct it.

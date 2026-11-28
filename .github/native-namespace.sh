@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Copyright (c) 2026 Tai Benvenuti
+# SPDX-License-Identifier: GPL-3.0-only
 # Ubuntu 24.04 GitHub-hosted native job only. Never run on a developer machine.
 set -euo pipefail
 [[ $RUNNER_ENVIRONMENT == github-hosted && $(id -u) != 0 ]]

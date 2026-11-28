@@ -1,7 +1,8 @@
 [project]
 name = "elivibe"
 # Developer-only virtual project; no Python distribution is built.
-version = "1.1.0"
+version = "2.0.0"
+license = "GPL-3.0-only"
 requires-python = ">=3.14,<3.15"
 dependencies = []
 

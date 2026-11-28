@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-only
+# Copyright (c) 2026 Tai Benvenuti
+
 """Build and verify the two eliVibe archives from a Git commit."""
 
 import argparse
@@ -21,8 +24,11 @@ COMMIT = re.compile(r"[0-9a-f]{40}(?:[0-9a-f]{24})?")
 SKILL = "skills/elivibe/SKILL.md"
 CODEX_SKILL = "skills/elivibe/agents/openai.yaml"
 CODEX_PLUGIN = "skills/.codex-plugin/plugin.json"
-CODEX_LICENSE = "skills/LICENSE"
+PLUGIN_LICENSE = "skills/LICENSE"
+SKILL_LICENSE = "skills/elivibe/LICENSE"
+LICENSE_FILES = ("LICENSE", PLUGIN_LICENSE, SKILL_LICENSE)
 PLUGIN_ICON = "skills/icon.png"
+PLUGIN_ICON_SOURCE = "skills/icon.svg"
 CODEX_CATALOG = ".agents/plugins/marketplace.json"
 CLAUDE_PLUGIN = "skills/.claude-plugin/plugin.json"
 CLAUDE_CATALOG = ".claude-plugin/marketplace.json"
@@ -30,20 +36,23 @@ CLAUDE_README = "skills/README.md"
 SKILL_METADATA = (
     CODEX_SKILL,
     CODEX_PLUGIN,
-    CODEX_LICENSE,
     PLUGIN_ICON,
+    PLUGIN_ICON_SOURCE,
     CLAUDE_PLUGIN,
     CLAUDE_README,
 )
 CATALOGS = {".agents/plugins": CODEX_CATALOG, ".claude-plugin": CLAUDE_CATALOG}
 CODEX_POLICY = b"policy:\n  allow_implicit_invocation: false\n"
-LICENSE_ID = "MIT"
+LICENSE_ID = "GPL-3.0-only"
+# GNU GPL v3 COPYING, including the application instructions at the end.
+LICENSE_SHA256 = "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
 ENTRY = "adapters/omp/index.ts"
 RUNTIME = (ENTRY, "core/index.ts", SKILL)
 NATIVE_SOURCES = (*RUNTIME, "package.json", "LICENSE", "README.md")
 PORTABLE_SOURCES = {
     SKILL: "elivibe/SKILL.md",
     CODEX_SKILL: "elivibe/agents/openai.yaml",
+    SKILL_LICENSE: "elivibe/LICENSE",
     "LICENSE": "LICENSE",
     "README.md": "README.md",
     "NOTICE": "NOTICE",
@@ -73,20 +82,41 @@ SUMS = "SHA256SUMS"
 def validate_skill(data: bytes) -> None:
     lines = data.decode("utf-8").splitlines()
     if not (
-        len(lines) >= 5
+        len(lines) >= 7
         and lines[:2] == ["---", "name: elivibe"]
         and lines[2].startswith("description: ")
         and lines[2].removeprefix("description: ").strip()
-        and lines[3:5] == ["disable-model-invocation: true", "---"]
+        and lines[3:7]
+        == [
+            "disable-model-invocation: true",
+            f"license: {LICENSE_ID}",
+            "# Copyright (c) 2026 Tai Benvenuti",
+            "---",
+        ]
     ):
         raise ValueError("invalid native skill metadata")
-    if not any(line.strip() for line in lines[5:]):
+    if not any(line.strip() for line in lines[7:]):
         raise ValueError("empty skill body")
 
 
 def validate_codex_skill(data: bytes) -> None:
     if data != CODEX_POLICY:
         raise ValueError("Codex skill must disable implicit invocation")
+
+
+def validate_license(data: bytes) -> None:
+    if hashlib.sha256(data).hexdigest() != LICENSE_SHA256:
+        raise ValueError(
+            f"LICENSE must contain the unmodified GNU GPL v3 text ({LICENSE_ID})"
+        )
+
+
+def validate_licenses(sources: dict[str, bytes]) -> None:
+    root_license = sources["LICENSE"]
+    validate_license(root_license)
+    for name in (PLUGIN_LICENSE, SKILL_LICENSE):
+        if sources[name] != root_license:
+            raise ValueError(f"{name} differs from the root license")
 
 
 def skill_digest(root: Path) -> str:
@@ -100,11 +130,12 @@ def skill_digest(root: Path) -> str:
                 "LICENSE",
                 "README.md",
                 "icon.png",
+                "icon.svg",
             },
         ),
         ("skills/.codex-plugin", {"plugin.json"}),
         ("skills/.claude-plugin", {"plugin.json"}),
-        ("skills/elivibe", {"SKILL.md", "agents"}),
+        ("skills/elivibe", {"SKILL.md", "LICENSE", "agents"}),
         ("skills/elivibe/agents", {"openai.yaml"}),
     ):
         path = root / directory
@@ -112,13 +143,14 @@ def skill_digest(root: Path) -> str:
             raise ValueError("invalid skill directory")
         if {child.name for child in path.iterdir()} != children:
             raise ValueError("unexpected skill tree")
-    for name in (SKILL, CODEX_SKILL):
+    for name in (SKILL, CODEX_SKILL, *LICENSE_FILES):
         mode = (root / name).lstat().st_mode
         if not stat.S_ISREG(mode) or mode & 0o111:
             raise ValueError("invalid skill file mode")
     data = (root / SKILL).read_bytes()
     validate_skill(data)
     validate_codex_skill((root / CODEX_SKILL).read_bytes())
+    validate_licenses({name: (root / name).read_bytes() for name in LICENSE_FILES})
     return hashlib.sha256(data).hexdigest()
 
 
@@ -133,8 +165,6 @@ def validate_plugin_icon(data: bytes) -> None:
 
 def validate_codex(sources: dict[str, bytes], version: str) -> None:
     validate_codex_skill(sources[CODEX_SKILL])
-    if sources[CODEX_LICENSE] != sources["LICENSE"]:
-        raise ValueError("Codex license differs from the root license")
     plugin = json.loads(sources[CODEX_PLUGIN])
     fields = {
         "name",
@@ -271,7 +301,7 @@ def validate_checkout_metadata(root: Path, version: str) -> None:
         if not stat.S_ISDIR((root / directory).lstat().st_mode):
             raise ValueError(f"invalid host manifest directory: {directory}")
     sources = {}
-    for name in (*SKILL_METADATA, *CATALOGS.values(), "LICENSE"):
+    for name in (*SKILL_METADATA, *CATALOGS.values()):
         path = root / name
         mode = path.lstat().st_mode
         if not stat.S_ISREG(mode) or mode & 0o111:
@@ -367,7 +397,8 @@ def release_sources(root: Path, version: str, commit: str) -> dict[str, bytes]:
         if any(entry == name or entry.startswith(name + b"/") for entry in entries):
             raise ValueError(f"unexpected OMP discovery path: {path}")
     if {name for name in entries if name.startswith(b"skills/")} != {
-        name.encode() for name in (SKILL, *SKILL_METADATA)
+        name.encode()
+        for name in (SKILL, *SKILL_METADATA, PLUGIN_LICENSE, SKILL_LICENSE)
     }:
         raise ValueError("unexpected skill tree")
     for directory, catalog in CATALOGS.items():
@@ -378,7 +409,13 @@ def release_sources(root: Path, version: str, commit: str) -> dict[str, bytes]:
         if members != {catalog.encode()}:
             raise ValueError(f"unexpected marketplace tree: {directory}")
     sources = {}
-    required = (*NATIVE_SOURCES, *SKILL_METADATA, *CATALOGS.values())
+    required = (
+        *NATIVE_SOURCES,
+        *SKILL_METADATA,
+        *CATALOGS.values(),
+        PLUGIN_LICENSE,
+        SKILL_LICENSE,
+    )
     if b"NOTICE" in entries:
         required = (*required, "NOTICE")
     for name in required:
@@ -388,9 +425,10 @@ def release_sources(root: Path, version: str, commit: str) -> dict[str, bytes]:
         sources[name] = git(root, "cat-file", "blob", oid.decode("ascii"))
         if name == "README.md" and not sources[name].strip():
             raise ValueError("empty distribution README")
-        if name in ("LICENSE", "NOTICE") and not sources[name].strip():
+        if name == "NOTICE" and not sources[name].strip():
             raise ValueError(f"empty distribution notice: {name}")
     validate_skill(sources[SKILL])
+    validate_licenses(sources)
     validate_manifest(json.loads(sources["package.json"]), version)
     validate_codex(sources, version)
     validate_claude(sources, version)
@@ -485,22 +523,27 @@ def inspect_install(files: dict[str, bytes], version: str) -> None:
             archive.extractall(root, filter="data")
         skill = root / "elivibe/SKILL.md"
         validate_codex_skill((root / PORTABLE_SOURCES[CODEX_SKILL]).read_bytes())
+        skill_bytes = skill.read_bytes()
+        validate_skill(skill_bytes)
         plugin = root / NATIVE
         discovered = plugin / SKILL
         manifest = json.loads((plugin / "package.json").read_bytes())
+        native_license = (plugin / "LICENSE").read_bytes()
+        validate_license(native_license)
         if not stat.S_ISREG(discovered.lstat().st_mode):
             raise ValueError("unexpected native skill discovery path")
         if (
-            discovered.read_bytes() != skill.read_bytes()
+            discovered.read_bytes() != skill_bytes
             or any(
-                (root / name).read_bytes() != (plugin / name).read_bytes()
-                for name in ("LICENSE", "README.md")
+                (root / name).read_bytes() != native_license
+                for name in ("LICENSE", PORTABLE_SOURCES[SKILL_LICENSE])
             )
+            or (root / "README.md").read_bytes() != (plugin / "README.md").read_bytes()
             or manifest["license"] != LICENSE_ID
             or manifest["version"] != version
         ):
             raise ValueError("extracted portable and native package metadata differ")
-        print(f"Skill SHA-256: {hashlib.sha256(skill.read_bytes()).hexdigest()}")
+        print(f"Skill SHA-256: {hashlib.sha256(skill_bytes).hexdigest()}")
         print(f"Native manifest: {json.dumps(manifest)}")
 
 

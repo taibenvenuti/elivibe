@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Tai Benvenuti
+// SPDX-License-Identifier: GPL-3.0-only
+
 // Used only by the inactive publication workflow for explicitly approved releases.
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, rmSync } from "node:fs";

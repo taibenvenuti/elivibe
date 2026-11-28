@@ -1,12 +1,14 @@
 # Reviewing and releasing eliVibe
 
-[v1.1.0](https://github.com/taibenvenuti/elivibe/releases/tag/v1.1.0) is the stable GitHub release. It, [v1.0.0](https://github.com/taibenvenuti/elivibe/releases/tag/v1.0.0) and [v0.1.0](https://github.com/taibenvenuti/elivibe/releases/tag/v0.1.0) each shipped two archives and `SHA256SUMS`. Project policy forbids replacing their tags or assets; this is not a claim that GitHub's immutable-release feature is enabled. [Status](status.md) records the exact release commits and which distribution checks actually ran. Do not advertise GitHub source installation on an old ref, or npm installation before a version resolves and works.
+[v1.1.0](https://github.com/taibenvenuti/elivibe/releases/tag/v1.1.0) is the stable MIT release on GitHub and npm. It, [v1.0.0](https://github.com/taibenvenuti/elivibe/releases/tag/v1.0.0) and [v0.1.0](https://github.com/taibenvenuti/elivibe/releases/tag/v0.1.0) each shipped two archives and `SHA256SUMS` under MIT. Keep their terms, tags, bytes and evidence unchanged; project policy forbids replacing tags or assets, regardless of GitHub's immutable-release settings. [Status](status.md) records which distribution checks actually ran. The **2.0.0 GPL-3.0-only candidate is not published**. Use exact local candidate artifacts for review; keep public consumer examples on the last published, verified route.
 
 ## Version and contents
 
 `package.json` is the product manifest for Git, npm and the native archive. Keep its version, lockfiles, tag and archive names aligned. The [explicit semantic-release policy](../dev/release-policy.mjs) uses `fix` → patch, `feat` → minor and `!`/`BREAKING CHANGE` → major, including before 1.0. Never run semantic-release with its default plugins or mistake the untagged fixture result for a decision on this repository.
 
 The host-managed **v1.0.0 release** broke the v0.1.0 contract: it replaced report-only inference with ordinary OMP conversation and retired isolated model, judge and route-approval controls. The reviewed squash subject was `feat(omp)!: explain handoffs in the host conversation`; the disclosure change was recorded in the squash body, release notes and migration guide. Always check the policy decision on the actual final main history before tagging.
+
+The proposed **2.0.0** release changes the license for newly distributed eliVibe copies to GPL-3.0-only, not the runtime behavior or the terms of older copies. Record that change in the approved squash message and release notes, including how to roll back to v1.1.0. A manifest version or fixture result alone is not a release-policy decision or publication approval.
 
 From a **clean checkout of the exact reviewed main commit** with its hosted checks complete, prepare artifacts outside the repository. The steps below use the same dedicated Bash shell (`set -euo pipefail`) and pinned tools from [development](development.md); stop on any failed command or unexpected remote result. Fill in review inputs from the approval record, not from a moving ref or an earlier candidate. Build while the candidate tag is absent and retain those exact artifacts for approval and any retry.
 
@@ -29,19 +31,28 @@ for member in README.md LICENSE; do
   git show "$sha:$member" | cmp - <(tar -xOzf "$assets/$native" "elivibe-omp/$member")
   git show "$sha:$member" | cmp - <(tar -xOzf "$npm_tarball" "package/$member")
 done
+git show "$sha:LICENSE" | cmp - <(git show "$sha:skills/LICENSE")
+git show "$sha:LICENSE" | cmp - <(git show "$sha:skills/elivibe/LICENSE")
+git show "$sha:LICENSE" | cmp - <(unzip -p "$assets/$zip" elivibe/LICENSE)
 git show "$sha:skills/elivibe/SKILL.md" | cmp - <(unzip -p "$assets/$zip" elivibe/SKILL.md)
 git show "$sha:skills/elivibe/SKILL.md" | cmp - <(tar -xOzf "$assets/$native" elivibe-omp/skills/elivibe/SKILL.md)
 git show "$sha:skills/elivibe/SKILL.md" | cmp - <(tar -xOzf "$npm_tarball" package/skills/elivibe/SKILL.md)
 sha256sum "$assets/$zip" "$assets/$native" "$assets/SHA256SUMS" "$npm_tarball" > "$output/approved.sha256"
 ```
 
-Inspect the **actual** npm `.tgz`: manifest, version, entry point, runtime, regular canonical skill, public README and MIT license. The pack runs offline with scripts disabled from a clean `git archive` of the approved SHA, not from the checkout with its local files. Exclude lifecycle scripts, runtime dependencies, development files, credentials, private research and raw transcripts. The root README and skill comparisons apply to the candidate's new archives; do not regenerate historical releases with the current builder. Keep the npm tarball separate from the GitHub asset directory. Record and approve the exact names and digests, not just the fact that packaging ran. A changed source tree, squash SHA, package or dependency invalidates the corresponding evidence.
+Inspect the **actual** npm `.tgz`: manifest (including `GPL-3.0-only`), version, entry point, runtime, regular canonical skill, public README with copyright attribution, and full GPLv3 text. The same notices and license must reach recipients of the native archive. The standalone ZIP has a root license and another in `elivibe/` so a copied skill directory keeps the license; the Git marketplace package ships its own root license, attributed README, and the same licensed skill directory. The npm pack runs offline with scripts disabled from a clean `git archive` of the approved SHA. Exclude lifecycle scripts, runtime dependencies, development files, credentials, private research and raw transcripts. Do not rebuild historical releases with the current builder. Keep the npm tarball separate from the GitHub asset directory. Approve exact names and digests; a changed source tree, squash SHA, package or dependency invalidates the corresponding evidence.
 
-Use the helper's private export for npm. Both Git's archive mask and the extraction mask are pinned to `0022`: `npm pack` includes file permissions in the tar headers. With an inherited `0077` and otherwise identical source, the six files would be `0600` instead of `0644`, changing registry integrity. An unexpected digest stops publication even when file contents match.
+Use the helper's private export for npm. Both Git's archive mask and the extraction mask are pinned to `0022`: `npm pack` includes file permissions in the tar headers. With an inherited `0077` and otherwise identical source, the files would be `0600` instead of `0644`, changing registry integrity. An unexpected digest stops publication even when file contents match.
+
+### License and corresponding source
+
+Apply the [project's license policy](../README.md#license) to each actual delivery route, not just the project repository. When conveying source, preserve its license, copyright and other required notices. When conveying any covered file in a form other than its preferred form for modification, GPLv3 §6 also requires a compliant way for recipients to get the Corresponding Source for that exact copy, including scripts needed to generate, install and run the object code or modify the work. The shipped TypeScript and Markdown are source. The Git marketplace package and the candidate directory ZIP also ship `icon.svg`, the editable source corresponding to `icon.png`. Check the whole delivered package, including what the destination actually lets recipients obtain.
+
+For a public download using GPLv3 §6(d), offer equivalent access to the exact Corresponding Source at no further charge. If hosted separately, put clear directions next to the download, check the link without credentials, and keep the source available as needed to satisfy the license. An unpushed SHA, moving branch, unrelated version, or generic repository URL is not that offer. Ensure the chosen channel preserves notices, source access and recipients' GPL rights without incompatible terms or technical restrictions. Record this for each destination before approval. Approval of local artifacts does not authorize sending them elsewhere; even a private upload may convey a copy to another party.
 
 ### Published reproduction or candidate rehearsal
 
-The [read-only rehearsal workflow](../.github/workflows/release-rehearsal.yml) fetches full history and tags and uploads nothing. Its default **published** mode selects the highest stable annotated version tag reachable from the dispatch checkout (on post-1.1.0 `main`, `v1.1.0`) and uses that tag's peeled commit, manifest and builder. Leave `candidate_sha` blank; optionally name another already published annotated `published_tag`. For `v0.1.0`, the helper uses the tag's `tools/package.py` to reproduce its three GitHub assets only, without applying the pre-tag `--bootstrap` guard. Check the tag signature with existing trust and compare the build output with the recorded digests or anonymous downloads; a tag by itself is not proof of publication.
+The [read-only rehearsal workflow](../.github/workflows/release-rehearsal.yml) fetches full history and tags and uploads nothing. Its default **published** mode selects the highest stable annotated version tag reachable from the dispatch checkout (`v1.1.0` until a newer tag is reachable) and uses that tag's peeled commit, manifest, license and builder. Leave `candidate_sha` blank; optionally name another already published annotated `published_tag`. For the MIT `v0.1.0` tag, the helper uses the tag's `tools/package.py` to reproduce its three GitHub assets only, without applying the pre-tag `--bootstrap` guard. Check the tag signature with existing trust and compare the build output with the recorded digests or anonymous downloads; a tag by itself is not proof of publication.
 
 For **candidate** mode, select the reviewed branch and enter its full `candidate_sha`, with `published_tag` blank. The workflow requires the selected checkout to match that SHA. The helper uses the candidate's own builder and manifest and rejects any existing `v<version>` tag. If a docs-only checkout still carries an already tagged version, use published mode for reproduction; do not substitute `HEAD` for the tag's commit or call the rebuilt tag a candidate.
 
@@ -54,7 +65,7 @@ sh dev/rehearse-release.sh published v1.1.0 "$replay"
 
 Expect `published: v1.1.0 from 13b0cb94f66f6f9aa7793737201a5f95e2674997`. Compare the three files in `$replay/github` with the public downloads or approved digests in [status](status.md). Compare `$replay/elivibe-1.1.0.tgz` with its approved digest separately: this is a local reproduction, not a public npm download.
 
-**Future candidate only — do not run candidate mode for v1.1.0.** Use the [candidate build](#version-and-contents) only before the future tag exists, from the exact approved main SHA with its approved version in the manifest and lock and a new empty output directory. The helper takes `candidate SHA EMPTY_OUTPUT_DIR` and refuses an existing `v<version>` tag even if the SHA differs from the tag's commit. Keep those pre-tag digests separate from the published record.
+**2.0.0 candidate only — do not run candidate mode for v1.1.0.** Use the [candidate build](#version-and-contents) with `version=2.0.0`, the approved SHA carrying that version and GPL-3.0-only, and a new empty output directory. The helper takes `candidate SHA EMPTY_OUTPUT_DIR` and refuses an existing `v<version>` tag even if the SHA differs from the tag's commit. Keep those pre-tag digests separate from the published MIT record.
 
 ### Smoke the intended distribution
 
@@ -95,32 +106,42 @@ This OMP smoke uses controlled loopback inference and a disposable registry; act
 
 OpenAI's [submission workflow](https://developers.openai.com/plugins/deploy/submission) has a skills-only ZIP path. Prepare an inspection ZIP from the reviewed cross-harness tree with Git supporting `archive --mtime`. It is **not upload-approved**, not the standalone GitHub release ZIP, not a fourth GitHub asset and not the npm tarball.
 
-To reproduce the reviewed 1.1.0 directory ZIP, set `version=1.1.0` and `sha=$(git rev-parse 'v1.1.0^{commit}')` before running this block. This needs the tagged source, not an unpublished candidate or a directory account.
+For 2.0.0, use the `version` and exact approved `sha` from the candidate build. The ZIP includes `elivibe/LICENSE` with the skill and `icon.svg` with the exported PNG. To reproduce the historical MIT 1.1.0 directory ZIP instead, set `version=1.1.0` and `sha=$(git rev-parse 'v1.1.0^{commit}')`; its expected members remain unchanged.
 
 ```bash
 dir=$(mktemp -d)
 prep="$dir/elivibe-codex-$version.zip"
+directory_paths=(.codex-plugin elivibe LICENSE README.md icon.png)
+case "$version" in
+  2.0.0) directory_paths+=(icon.svg) ;;
+  1.1.0) test "$sha" = "$(git rev-parse 'v1.1.0^{commit}')" ;;
+  *) exit 2 ;;
+esac
 TZ=UTC git archive --format=zip --mtime=1980-01-01T00:00:00Z -o "$prep" \
-  "$sha:skills" .codex-plugin elivibe LICENSE README.md icon.png
-python3.14 - "$prep" "$sha" <<'PY'
+  "$sha:skills" "${directory_paths[@]}"
+python3.14 - "$prep" "$sha" "$version" <<'PY'
 import subprocess
 import sys
 from zipfile import ZipFile
 
-expected = sorted([
+expected = [
     ".codex-plugin/plugin.json", "elivibe/SKILL.md", "elivibe/agents/openai.yaml",
     "LICENSE", "README.md", "icon.png",
-])
+]
+if sys.argv[3] == "2.0.0":
+    expected += ["elivibe/LICENSE", "icon.svg"]
 with ZipFile(sys.argv[1]) as archive:
-    assert sorted(item.filename for item in archive.infolist() if not item.is_dir()) == expected
+    assert sorted(item.filename for item in archive.infolist() if not item.is_dir()) == sorted(expected)
     assert all(item.date_time == (1980, 1, 1, 0, 0, 0) for item in archive.infolist())
     for name in expected:
         assert archive.read(name) == subprocess.check_output(["git", "show", f"{sys.argv[2]}:skills/{name}"])
+    if sys.argv[3] == "2.0.0":
+        assert archive.read("LICENSE") == archive.read("elivibe/LICENSE")
 PY
 sha256sum "$prep"
 ```
 
-For the [Claude Code submission portal](https://code.claude.com/docs/en/plugins/publish), the plugin's repository path is `skills` in `taibenvenuti/elivibe`, not the repository root or either ZIP. Review the checked-in `.claude-plugin/marketplace.json` and `skills/.claude-plugin/plugin.json`; do not submit or claim review, listing or publication from local validation.
+For the [Claude Code submission portal](https://code.claude.com/docs/en/plugins/publish), the plugin's repository path is `skills` in `taibenvenuti/elivibe`, not the repository root or either ZIP. Review the checked-in `.claude-plugin/marketplace.json` and `skills/.claude-plugin/plugin.json`. For either directory, require separate owner approval and review the then-current submission, hosting and redistribution terms, including whether they let recipients retain GPLv3 rights and receive notices and any required source. Neither the vendor's acceptance of GPL-3.0-only uploads nor the compatibility of its terms with this candidate has been established. If the destination cannot meet those obligations, do not submit. Do not infer review, listing or publication from local CLI validation or successful ZIP construction.
 
 ## Destination gates — do not conflate them
 
@@ -149,7 +170,7 @@ git clone --quiet --no-hardlinks -- "$PWD" "$review/source"
 )
 ```
 
-The helper runs the lockfile-pinned semantic-release and explicit policy on a disposable `main` and local upstream, enforces the candidate manifest version and checks that the dry-run leaves refs unchanged. Record the base tag and commit selected by the policy, proposed parent/tree/message, version and synthetic SHA. For **1.1.0**, the intended base is `v1.0.0` and the approved non-breaking `feat` squash must select a minor release. If the base, reviewed head, subject or body changes, repeat this calculation before merging.
+The helper runs the lockfile-pinned semantic-release and explicit policy on a disposable `main` and local upstream, enforces the candidate manifest version and checks that the dry-run leaves refs unchanged. Record the base tag and commit selected by the policy, proposed parent/tree/message, version and synthetic SHA. For **2.0.0**, expect `v1.1.0` as the base and require an approved breaking squash (`!` or a `BREAKING CHANGE` footer) that actually selects a major release. If the base, reviewed head, subject or body changes, repeat this calculation before merging.
 
 ```bash
 repo=taibenvenuti/elivibe
@@ -176,7 +197,7 @@ test "$(git rev-parse "$sha^{tree}")" = "$(git rev-parse "$head^{tree}")"
 gh run list -R "$repo" --workflow ci.yml --branch main --event push --commit "$sha" --status success
 ```
 
-Inspect the run's two required jobs. Compare the final squash body to the approved message (including any breaking footer), then repeat the decision **before tagging** from a clean checkout of the final SHA with its locked dependencies: `node dev/release-version.mjs "$sha"`. Record the final SHA and confirmed version; the synthetic decision is not proof of the final main history. Prepare the artifacts above. Install `omp plugin install "github:$repo#$sha"` in a clean consumer environment. Record version, source, skill/command discovery and actual first use and removal; verify rollback with a retained installation. If trust, SSH or isolation blocks the test, report it rather than bypassing it. Authenticated preview is separate; do not activate the [parked privileged workflow](../.github/release-workflow.yml).
+Inspect the run's two required jobs. Compare the final squash body to the approved message (including any breaking footer), then repeat the decision **before tagging** from a clean checkout of the final SHA with its locked dependencies: `node dev/release-version.mjs "$sha"`. Record the final SHA and confirmed version; the synthetic decision is not proof of the final main history. Prepare the artifacts above. If the approved SHA is reachable at the intended GitHub source, install `omp plugin install "github:$repo#$sha"` in a clean consumer environment; a local detached checkout proves a different route. Record version, source, skill/command discovery and actual first use and removal; verify rollback with the retained v1.1.0 installation or verified artifact for that route. If trust, SSH or isolation blocks the test, report it rather than bypassing it. Authenticated preview is separate; do not activate the [parked privileged workflow](../.github/release-workflow.yml).
 
 ### Signed tag and GitHub draft
 
@@ -223,7 +244,7 @@ for name in "$zip" "$native" SHA256SUMS; do
   cmp "$assets/$name" "$draft_assets/$name"
 done
 (cd "$draft_assets" && sha256sum -c SHA256SUMS)
-python3.14 dev/package.py verify --commit "$sha" --version "$version" --license-id MIT --output-dir "$draft_assets"
+python3.14 dev/package.py verify --commit "$sha" --version "$version" --license-id GPL-3.0-only --output-dir "$draft_assets"
 ```
 
 ### Publish the verified GitHub draft
@@ -247,10 +268,10 @@ for name in "$zip" "$native" SHA256SUMS; do
   cmp "$assets/$name" "$public_assets/$name"
 done
 (cd "$public_assets" && sha256sum -c SHA256SUMS)
-python3.14 dev/package.py verify --commit "$sha" --version "$version" --license-id MIT --output-dir "$public_assets"
+python3.14 dev/package.py verify --commit "$sha" --version "$version" --license-id GPL-3.0-only --output-dir "$public_assets"
 ```
 
-Use the public downloads to [try the standalone skill and link the native archive](installation.md). Record the verified public URL and observed consumer results in [status](status.md).
+Use the exact public assets in a fresh profile to try the standalone skill and link the native archive; apply the [installation guide's procedure](installation.md) with the newly verified filenames and checksum entries, not its v1.1.0 download links. Record the verified public URL, source-access evidence where required, and observed consumer results in [status](status.md).
 
 Publishing affects only the approved GitHub draft and its three existing assets. A subsequent docs-only closure records observed results and remaining gates without changing the tag, assets, runtime or npm package; it still follows the [ordinary protected-main PR requirements](#protected-squash-merge-and-git-source). Independently audit the published bytes and consumer journeys before promotion. npm publication and directory submission each require separate authority and evidence.
 
@@ -298,7 +319,7 @@ else
 fi
 ```
 
-Separately inspect the registry anonymously. Set `npm_latest_before` from the approved rollout baseline, not from this lookup. For [the 1.1.0 publication](status.md#release-identity-and-reproducibility), the baseline was `1.0.0`. A 404 at the **version endpoint** is required before the first publish attempt; the existing package and `latest` are expected to resolve.
+Separately inspect the registry anonymously. Set `npm_latest_before` from the approved rollout baseline, not from this lookup. For a 2.0.0 rollout directly after the current release, the expected baseline is `1.1.0`; the historical 1.1.0 publication used `1.0.0`. A 404 at the **version endpoint** is required before the first publish attempt; the existing package and `latest` are expected to resolve.
 
 ```bash
 registry=https://registry.npmjs.org
@@ -306,7 +327,7 @@ registry=https://registry.npmjs.org
 sha256sum -c "$output/approved.sha256"
 tar -xOzf "$npm_tarball" package/package.json |
   jq -e --arg version "$version" '.name == "elivibe" and .version == $version and
-    .repository.url == "git+https://github.com/taibenvenuti/elivibe.git"'
+    .license == "GPL-3.0-only" and .repository.url == "git+https://github.com/taibenvenuti/elivibe.git"'
 probe=$(mktemp -d)
 status=$(curl -q -sS -H 'Cache-Control: no-cache' -o "$probe/target.json" -w '%{http_code}' \
   "$registry/elivibe/$version")
@@ -357,7 +378,7 @@ for ref in "$version" latest; do
   curl -q -fsS -H 'Cache-Control: no-cache' "$registry/elivibe/$ref" |
     jq -e --arg version "$version" --arg integrity "$integrity" \
       --arg url "$registry/elivibe/-/elivibe-$version.tgz" \
-      '.name == "elivibe" and .version == $version and
+      '.name == "elivibe" and .version == $version and .license == "GPL-3.0-only" and
        .repository.url == "git+https://github.com/taibenvenuti/elivibe.git" and
        .dist.integrity == $integrity and .dist.tarball == $url'
 done
