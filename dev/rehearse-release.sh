@@ -43,8 +43,9 @@ esac
 scratch=$(mktemp -d)
 trap 'rm -rf -- "$scratch"' EXIT
 mkdir "$scratch/source"
-git archive --format=tar -o "$scratch/source.tar" "$sha"
-tar -xf "$scratch/source.tar" -C "$scratch/source"
+# npm pack records extracted modes. Fix both masks inside the private build directory.
+git -c tar.umask=0022 archive --format=tar -o "$scratch/source.tar" "$sha"
+(umask 022; tar -xf "$scratch/source.tar" -C "$scratch/source")
 source=$scratch/source
 builder=$source/dev/package.py
 manifest_version=$(cd "$source" && node -p 'require("./package.json").version')
