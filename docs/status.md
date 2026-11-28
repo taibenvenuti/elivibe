@@ -1,10 +1,10 @@
 # Release status and evidence
 
-**Public stable:** [v1.0.0 on GitHub](https://github.com/taibenvenuti/elivibe/releases/tag/v1.0.0), published 2026-11-27 (release ID `461018452`), and [elivibe@1.0.0 on npm](https://www.npmjs.com/package/elivibe/v/1.0.0). The signed annotated Git tag peels to `caf8c089cad3a67d242d0eaa15329fca117a66a8`. See the [verified installation routes](installation.md).
+**Status when the 1.1.0 release instructions were prepared:** [GitHub v1.0.0](https://github.com/taibenvenuti/elivibe/releases/tag/v1.0.0) and [npm 1.0.0](https://www.npmjs.com/package/elivibe/v/1.0.0) were public. A tagged copy of this ledger is a snapshot; consult the [maintained distribution record](https://github.com/taibenvenuti/elivibe/blob/main/docs/status.md) for actual availability. The public routes are verified separately after publication.
 
 ## Cross-harness release candidate
 
-Base: `15d6d849677b1509396352ff3e5348a4bff33852`, [green main CI](https://github.com/taibenvenuti/elivibe/actions/runs/46066913459). Branch: `feat/cross-harness-skills`. The pinned analyzer evaluated the three docs commits since `v1.0.0` plus the proposed squash `feat(skills): support Codex and Claude Code`: **minor → 1.1.0**. This is not a published version.
+Base: `15d6d849677b1509396352ff3e5348a4bff33852`, [green main CI](https://github.com/taibenvenuti/elivibe/actions/runs/46066913459). Branch: `feat/cross-harness-skills`. The pinned analyzer evaluated the three docs commits since `v1.0.0` plus the proposed squash `feat(skills): support Codex and Claude Code`: **minor → 1.1.0**. These checks concern the candidate, not verification of a subsequently published route.
 
 | Gate | Current evidence |
 |---|---|
@@ -22,11 +22,11 @@ Base: `15d6d849677b1509396352ff3e5348a4bff33852`, [green main CI](https://github
 | Previous audit A–F | A: inspected the packed npm README; all 13 final-input destinations at `7de7e81` resolved, including anchors (feedback requires GitHub sign-in). B: documented and exercised pinned npm reinstalls and rollback, not an untested `upgrade`. C: separated published replay and candidate rehearsal. D: subsequent npm procedure checks ownership, exact bytes, integrity, `latest` and already-matching publication; read-only reconciliation matched v1.0.0. E: documented the original-source requirement on `more`. F: expanded Oh My Pi, corrected package keywords and separated historical evidence from current guidance. |
 | Newcomer walkthroughs | Three reviewers started independently at the README. The Codex reviewer installed the ZIP and GitHub plugin, selected the qualified skill in the TUI, inspected the actual request and checked follow-up and removal. The Claude reviewer installed both routes, observed namespaced command discovery and inline `ARGUMENTS` with the original handoff, resumed without reinvoking, and removed only the local registration. The OMP reviewer installed the public unversioned npm command (`1.0.0`), exercised controls, pinned reinstall, GitHub SHA, linked archive and standalone removal. The guidance now distinguishes npm specs, Git refs and actual symlink targets; the OMP reviewer confirmed the correction. Readers also identified obsolete links to preview status and an earlier guide. These are technical walkthroughs, not reader outcomes. |
 
-### 1.1.0 review artifacts (not released)
+### Superseded preview builds — not release digests
 
 Signed distribution inputs: `0b28b8fea5ce76b4f240e35b780e71f02d98b5b7`; local output `results/1.1.0/0b28b8fea5ce76b4f240e35b780e71f02d98b5b7/` (ignored, not a public download). [Rebuild from the reviewed commit](release.md#version-and-contents). The standalone ZIP contains the canonical skill, explicit Codex policy, README and license. Native and npm each contain the OMP adapter, core, skill, manifest, README and license. A directory ZIP is separate: Codex manifest, skill and policy, inert icon, plugin README and license. All ship the same skill bytes; no portal validation or submission.
 
-The directory recipe uses UTC to eliminate timezone-dependent ZIP timestamps. The packaged installation guide at `5012233` includes the verified Claude same-version reinstall. See [draft PR #6](https://github.com/taibenvenuti/elivibe/pull/6) for the exact final head, rebuild comparison and hosted checks. Do not reuse candidate evidence for an untested future merge.
+The directory recipe uses UTC to eliminate timezone-dependent ZIP timestamps. The preview guide at `5012233` included the verified Claude same-version reinstall. The [preview receipt](https://github.com/taibenvenuti/elivibe/pull/6#issuecomment-7229106181) records that earlier head. **Do not use the hashes below to verify v1.1.0 downloads.** The final onboarding correction replaced the preview branch, variable setup and development-document permalinks with direct versioned commands and release guides. This intentionally changes the packaged README/metadata, not the teaching skill or executable integration. See [PR #6](https://github.com/taibenvenuti/elivibe/pull/6) for the superseding reviewed build.
 
 | File | SHA-256 |
 |---|---|

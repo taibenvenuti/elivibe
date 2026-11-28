@@ -1,13 +1,15 @@
 # Install, update, roll back, or remove
 
-Choose the host you already use. The plugin paths below need an already working host and its usual model access, but no eliVibe account, separate runtime, build, or manual clone. Install **one** copy per host: native plugin **or** standalone skill. If you already have a copy, [update or remove it](#update-roll-back-or-uninstall) rather than adding a second one.
+This guide installs **eliVibe v1.1.0**. Start with the host you already use and its usual model access. No separate eliVibe account, build, or manual clone is needed. Install **one** copy per host: a plugin or the [standalone skill](#standalone-skill). If you already have a copy, [update or remove it](#update-roll-back-or-uninstall) instead of adding a second one.
+
+The GitHub tag, release downloads, and npm version become available separately. Check the [maintained release status](https://github.com/taibenvenuti/elivibe/blob/main/docs/status.md) for availability and provenance. If a route isn't available, use another available route for v1.1.0 or wait. For OMP only, you can instead follow the [v1.0.0 guide](https://github.com/taibenvenuti/elivibe/blob/v1.0.0/docs/installation.md) for that older release.
 
 ## Codex
 
-For Codex and Claude Code, check the [release tags](https://github.com/taibenvenuti/elivibe/tags) before copying. If `v1.1.0` is not listed, use the GitHub preview: run `export ELIVIBE_REF=feat/cross-harness-skills` in the same shell. For the released tag, leave `ELIVIBE_REF` unset. Use a release tag for a stable installation, not a moving preview branch. You can also use a reviewed [standalone copy](#standalone-skill).
+From your shell:
 
 ```sh
-codex plugin marketplace add "taibenvenuti/elivibe@${ELIVIBE_REF:-v1.1.0}" &&
+codex plugin marketplace add taibenvenuti/elivibe@v1.1.0 &&
   codex plugin add elivibe@elivibe
 ```
 
@@ -15,64 +17,59 @@ Open a fresh session in that Codex profile. In the `$` picker, choose **elivibe 
 
 ## Claude Code
 
-Use the same GitHub ref selection described [above](#codex). From your project directory:
+From your project directory:
 
 ```sh
-claude plugin marketplace add "taibenvenuti/elivibe#${ELIVIBE_REF:-v1.1.0}" --scope local &&
+claude plugin marketplace add 'taibenvenuti/elivibe#v1.1.0' --scope local &&
   claude plugin install elivibe@elivibe-marketplace --scope local
 ```
 
-The `local` scope applies to this project on your machine (`.claude/settings.local.json`), not your shared project settings or other projects. Use a **branch or tag** in the GitHub shorthand, not a full commit SHA. Open a fresh session in the same project and use `/elivibe:elivibe` for [your first explanation](#try-your-first-explanation).
+The `local` scope applies to this project on your machine (`.claude/settings.local.json`), not your shared project settings or other projects. Open a fresh session in the same project and use `/elivibe:elivibe` for [your first explanation](#try-your-first-explanation).
 
 ## Oh My Pi (OMP)
 
 ```sh
-omp plugin install elivibe@1.0.0
+omp plugin install elivibe@1.1.0
 ```
 
-This is the published [npm package](https://www.npmjs.com/package/elivibe/v/1.0.0). If replacing a v0.1.0 link, [migrate it first](#move-from-a-v010-linked-install). Open a new OMP session and use `/elivibe` for [your first explanation](#try-your-first-explanation).
+This requests the exact [npm version](https://www.npmjs.com/package/elivibe/v/1.1.0). If you're replacing an existing install, [check its source first](#check-the-installation) and [migrate a v0.1.0 link](#move-from-a-v010-linked-install) before installing. Open a new OMP session and use `/elivibe` for [your first explanation](#try-your-first-explanation).
 
-### Try the published release
+### GitHub instead of npm
 
-For the same stable [v1.0.0](https://github.com/taibenvenuti/elivibe/releases/tag/v1.0.0) adapter from GitHub instead of npm, run this in your shell with OMP 19.2.1:
+To install the same version from the GitHub tag instead of npm:
 
 ```sh
-omp plugin install github:taibenvenuti/elivibe#v1.0.0
+omp plugin install 'github:taibenvenuti/elivibe#v1.1.0'
 ```
 
-[Check the installation](#check-the-installation) before first use. For the older release itself, use the [tagged v0.1.0 guide](https://github.com/taibenvenuti/elivibe/blob/v0.1.0/docs/installation.md).
+If neither online route works, you can [verify and link the offline archive](#verify-and-link-an-offline-archive). [Check the installation](#check-the-installation) before first use.
 
 ## OMP installation sources
 
-Use OMP 19.2.1 in the intended profile. Pick **one** source. A GitHub tag, an npm package and a release archive become available independently; see [distribution status](status.md).
+Use OMP 19.2.1 in the intended profile and pick **one** source.
 
-| Source | OMP command | When to run |
-|---|---|---|
-| GitHub release tag | `omp plugin install github:taibenvenuti/elivibe#v1.0.0` | Verified on OMP 19.2.1, Linux x64. The signed annotated tag peels to `caf8c089cad3a67d242d0eaa15329fca117a66a8`. |
-| Offline native archive | `omp plugin link /absolute/path/to/extracted/elivibe-omp` | [Download, verify and extract the release archive first](#verify-and-link-an-offline-archive). Verified on OMP 19.2.1, Linux x64. |
-| Local checkout | `omp plugin link "$PWD"` | Run from the root of a clean, reviewed checkout. OMP loads the files directly: keep the directory intact and unchanged while linked. |
-| [npm](https://www.npmjs.com/package/elivibe/v/1.0.0) | `omp plugin install elivibe@1.0.0` | Verified from the public registry on OMP 19.2.1, Linux x64. |
+| Source | How to install |
+|---|---|
+| npm | `omp plugin install elivibe@1.1.0` |
+| GitHub release tag | `omp plugin install 'github:taibenvenuti/elivibe#v1.1.0'` |
+| Offline native archive | [Verify and extract the release archive, then link its `elivibe-omp/` directory](#verify-and-link-an-offline-archive). |
 
-Consumers need a working OMP installation. Its standalone binary embeds the package-manager runtime; no Python, uv, separate Node or Bun install. The tested `github:` shorthand fetched an HTTPS archive from GitHub. By default OMP registers plugins in the active user plugin directory, which may be shared by profiles. If you already have eliVibe linked, [migrate the existing install](#move-from-a-v010-linked-install) rather than forcing a replacement.
+OMP's standalone binary embeds the package-manager runtime; no separate Python, uv, Node or Bun installation is needed. OMP can share its user plugin directory across profiles. Check the active profile and installation path before changing an existing registration.
 
 ## Verify and link an offline archive
 
-Download [elivibe-omp-1.0.0.tar.gz](https://github.com/taibenvenuti/elivibe/releases/download/v1.0.0/elivibe-omp-1.0.0.tar.gz) and [SHA256SUMS](https://github.com/taibenvenuti/elivibe/releases/download/v1.0.0/SHA256SUMS) into the same directory. Set `version=1.0.0` and set `output` to that directory's absolute path. Verify before extraction (a mismatch means stop):
+Download [elivibe-omp-1.1.0.tar.gz](https://github.com/taibenvenuti/elivibe/releases/download/v1.1.0/elivibe-omp-1.1.0.tar.gz) and its matching [SHA256SUMS](https://github.com/taibenvenuti/elivibe/releases/download/v1.1.0/SHA256SUMS). Keep both files together, including if you transfer them to an offline machine. On Linux/WSL, open a shell in that download directory and run:
 
 ```sh
-archive="elivibe-omp-$version.tar.gz"
-(
-  cd "$output" &&
-    awk -v name="$archive" '$2 == name {line=$0; found++} END {if (found == 1) print line; else exit 1}' SHA256SUMS |
-    sha256sum -c -
-) &&
+checksum=$(awk '$2 == "elivibe-omp-1.1.0.tar.gz" { line = $0; count++ } END { if (count != 1) exit 1; print line }' SHA256SUMS) &&
+  printf '%s\n' "$checksum" | sha256sum --check --strict - &&
   mkdir -p "$HOME/.local/share/elivibe" &&
   install_dir=$(mktemp -d "$HOME/.local/share/elivibe/install.XXXXXXXX") &&
-  tar -xzf "$output/$archive" -C "$install_dir" &&
+  tar -xzf elivibe-omp-1.1.0.tar.gz -C "$install_dir" &&
   omp plugin link "$install_dir/elivibe-omp"
 ```
 
-Keep the extracted directory intact while linked. Don't pass this tarball to `omp plugin link` or `omp plugin install`. If preparing archives for review, see the [release build instructions](release.md#version-and-contents).
+If the manifest entry is missing, duplicated or doesn't verify, stop before extraction. Only link the extracted `elivibe-omp/` directory, never the tarball itself. Record the absolute path and keep it intact while linked; OMP loads directly from it. Keep the tarball and checksum for offline reinstall or rollback. To remove it, [unregister the plugin first](#omp-plugin), then delete just this extracted directory if you no longer need it.
 
 ## Check the installation
 
@@ -83,8 +80,8 @@ Before updating, look at `dependencies.elivibe` in the **plugin manager's** `pac
 
 | Source | What identifies it |
 |---|---|
-| npm | A version or range such as `1.0.0` or `^1.0.0`. The listing gives the version actually installed. |
-| GitHub | A value such as `github:taibenvenuti/elivibe#v1.0.0`; keep this ref separately from the version shown in the listing. |
+| npm | A version or range such as `1.1.0` or `^1.1.0`. The listing gives the version actually installed. |
+| GitHub | A value such as `github:taibenvenuti/elivibe#v1.1.0`; keep this ref separately from the version shown in the listing. |
 | Linked directory | No dependency entry **and** the listed path is a symlink. On Linux/WSL, `readlink -f -- "/path/from/the/listing"` gives the actual directory to keep. |
 
 If the evidence doesn't match one of these cases, don't force a reinstall over it.
@@ -118,33 +115,33 @@ These are ordinary host turns. Use only material you can share through your acti
 
 1. In the profile that owns the existing link, [identify its source](#check-the-installation) and record the resolved absolute path to the verified v0.1.0 extracted `elivibe-omp` directory. Do not overwrite it.
 2. Close the old session. In the same profile, unregister the old link with `omp plugin uninstall elivibe` before installing from your [chosen source](#omp-installation-sources). Don't use `--force` to move away from a link to a locally edited path. This leaves the old files available for rollback. Open a fresh session to check the new source, version and commands.
-3. Use `/elivibe status` and set the mode/depth you want. `depth adaptive` still works as `depth auto`. `/elivibe model`, `/elivibe judge`, `/elivibe consent`, and `/elivibe judge-consent` now show a migration notice instead of setting anything. Old route grants don't carry over; there is no independent model or separate judge. Select the ordinary model through OMP itself. Manual and Light no longer isolate the report; the ordinary conversation can include more context. Check the [new disclosure boundary](privacy.md) before using v1.0.0.
+3. Use `/elivibe status` and set the mode/depth you want. `depth adaptive` still works as `depth auto`. `/elivibe model`, `/elivibe judge`, `/elivibe consent`, and `/elivibe judge-consent` now show a migration notice instead of setting anything. Old route grants don't carry over; there is no independent model or separate judge. Select the ordinary model through OMP itself. Manual and Light no longer isolate the report; the ordinary conversation can include more context. Check the [disclosure boundary](privacy.md) before using the new install.
 
 A resumed branch keeps its saved mode and depth. In particular, a saved **Light** setting now asks the ordinary model to teach during a coding task, even without an old route grant. For explanations only on request, select `/elivibe manual` before the next task. A new branch without saved preferences defaults to Manual.
 
 ## Update, roll back, or uninstall
 
-For normal use, choose a release tag. A moving preview branch can contain different files under the **same** plugin version: a marketplace refresh or “already at the latest version” is not proof that cached plugin files match a newer commit. To review immutable skill bytes independently, use the [standalone snapshot](#standalone-skill).
+Record the installed version, source, and scope before changing anything. Change the pin deliberately to update or roll back; a marketplace refresh alone doesn't advance a pinned tag. Use the same profile or project where you installed eliVibe, and leave unrelated registrations and caches alone.
 
 ### Codex plugin
 
-- **Update:** for the same Git marketplace ref, run `codex plugin marketplace upgrade elivibe` and `codex plugin add elivibe@elivibe` again. A pinned tag won't advance to another tag. To change pins or roll back, remove the plugin and marketplace as below, then rerun the install commands with the desired named ref. For a filesystem marketplace, use a reviewed source directory and re-add the plugin; the Git-marketplace upgrade command doesn't apply.
+- **Update or roll back:** remove the plugin and its marketplace registration as below, then rerun the [Codex install commands](#codex) with the exact tag named in the target release's guide.
 - **Disable for one session:** start Codex with `codex -c 'plugins.elivibe@elivibe.enabled=false'`. Start it normally again to use the installed plugin; this doesn't change the persisted registration.
 - **Remove:** run `codex plugin remove elivibe@elivibe`, then `codex plugin marketplace remove elivibe` if you no longer want the marketplace. These operate on the current Codex profile. Start a fresh session after changing the install.
 
 ### Claude Code plugin
 
-- **Update:** from the same project, run `claude plugin marketplace update elivibe-marketplace`, then `claude plugin update elivibe@elivibe-marketplace --scope local`. A pinned tag won't advance to another tag. To switch pins or roll back, remove the plugin and marketplace as below, then rerun the install commands with the desired named ref.
-- **Same-version preview:** if the GitHub branch moved but the CLI says “already at the latest version,” the refreshed marketplace and the installed plugin can be at different commits. After the marketplace update, run `claude plugin uninstall elivibe@elivibe-marketplace --scope local` and then `claude plugin install elivibe@elivibe-marketplace --scope local` in the same project. This refreshed the cached files on Claude Code 2.1.291 without removing the marketplace or unrelated skills. Start a fresh session; don't clear your global cache.
+- **Update or roll back:** remove the plugin and its marketplace registration as below, then rerun the [Claude Code install commands](#claude-code) with the exact tag named in the target release's guide.
+- **Troubleshooting a stale same-version install:** if you've corrected or refreshed your marketplace registration but Claude Code still loads the old cached files and reports “already at the latest version,” refresh the marketplace with `claude plugin marketplace update elivibe-marketplace`. In the same project, run `claude plugin uninstall elivibe@elivibe-marketplace --scope local`, then `claude plugin install elivibe@elivibe-marketplace --scope local`. Use the original installation scope if it wasn't `local`. Start a fresh session. This reinstalls just eliVibe; don't reset your global cache.
 - **Disable or re-enable:** run `claude plugin disable elivibe@elivibe-marketplace --scope local` or `claude plugin enable elivibe@elivibe-marketplace --scope local`.
 - **Remove:** run `claude plugin uninstall elivibe@elivibe-marketplace --scope local`, then `claude plugin marketplace remove elivibe-marketplace --scope local` if you no longer want the marketplace. Use the scope in which you installed it; the examples use `local`, not shared `project` or all-projects `user`. Start a fresh session after changing the install.
 
 ### OMP plugin
 
-- **Registry source only:** record your current version before switching. With a confirmed registry install, run `omp plugin install elivibe@VERSION --force`, replacing `VERSION` with the exact available npm version. Use the same command with the previous version to roll back. This is a pinned reinstall tested with registry fixtures, not `omp plugin upgrade` or a claim that another public version is available. Never force over a GitHub install, local link, or unknown source.
-- **GitHub source:** record the installed tag or full SHA. Uninstall the current registration, then install from the next verified tag or full SHA. To roll back, reinstall from the previous verified ref. Keep the previous pin before switching; don't substitute a moving branch.
-- **Checkout or offline archive:** keep the previous reviewed directory. Unregister the current link and `omp plugin link` the new reviewed directory, or link the previous directory to roll back. Don't overwrite a linked path or use `omp plugin upgrade` for a local link. A rollback to v0.1.0 still has its old side-request paths.
-- **Remove:** `omp plugin uninstall elivibe` in the same profile. This unregisters the adapter and bundled skill without deleting a linked checkout or extracted archive. Restore a former standalone copy only if you want skill-only use.
+- **Registry source only:** after confirming this is an npm install, run `omp plugin install elivibe@1.1.0 --force` to switch to v1.1.0. To roll back, use the same command with the exact previous npm version. Never force over a GitHub install, local link, or unknown source.
+- **GitHub source:** record the installed tag or commit. Uninstall the current registration and install from the exact tag in the target release's guide. To roll back, reinstall the previous verified ref.
+- **Linked directory:** keep the previous verified directory outside skill discovery. Unregister the current link and `omp plugin link` the new extracted directory, or link the previous directory to roll back. Don't overwrite a linked path or use `omp plugin upgrade` on a link. A rollback to v0.1.0 restores its old side-request behavior.
+- **Remove:** run `omp plugin uninstall elivibe` in the profile that owns the registration. Confirm it's gone with `omp plugin list --json`. Unregistering a link doesn't delete its target: keep it for rollback or delete just that directory after confirming nothing else uses it. Restore a former standalone copy only if you want skill-only use.
 
 Close the old OMP session before switching or removing. [Check the resulting version and registration](#check-the-installation), then open a fresh session.
 
@@ -152,11 +149,21 @@ Close the old OMP session before switching or removing. [Check the resulting ver
 
 ### Standalone ZIP
 
-If you have the prepared `elivibe-1.1.0.zip` locally, use it with its matching `SHA256SUMS`; this is not a claim that the asset is published. From the download directory on Linux/WSL, run `grep -F '  elivibe-1.1.0.zip' SHA256SUMS | sha256sum -c -` and proceed only on `elivibe-1.1.0.zip: OK`. Extract into a fresh directory **outside** skill discovery and use its `elivibe/` folder. Leave the ZIP's root `README.md` and `LICENSE` in staging; keep the license with any redistribution.
+Download [elivibe-1.1.0.zip](https://github.com/taibenvenuti/elivibe/releases/download/v1.1.0/elivibe-1.1.0.zip) and its matching [SHA256SUMS](https://github.com/taibenvenuti/elivibe/releases/download/v1.1.0/SHA256SUMS). Keep both files for reinstall. On Linux/WSL, run this from the download directory, outside skill discovery:
 
-If you don't have the ZIP, use a **GitHub source archive**: download [the signed product snapshot](https://github.com/taibenvenuti/elivibe/archive/d038ddfefe0e39d45cb0f5df37da3cbacf45f511.zip) or use **Code → Download ZIP** on the reviewed branch or tag. Extract outside skill discovery and use its `skills/elivibe/` folder. No plugin marketplace or clone is needed. Keep the ref or snapshot you downloaded so you can reinstall the same files.
+```sh
+checksum=$(awk '$2 == "elivibe-1.1.0.zip" { line = $0; count++ } END { if (count != 1) exit 1; print line }' SHA256SUMS) &&
+  printf '%s\n' "$checksum" | sha256sum --check --strict - &&
+  staging=$(mktemp -d "$PWD/elivibe-1.1.0.XXXXXXXX") &&
+  unzip -q elivibe-1.1.0.zip -d "$staging" &&
+  printf 'Skill source: %s/elivibe\n' "$staging"
+```
 
-For the older OMP-only release, follow the [v1.0.0 ZIP instructions](https://github.com/taibenvenuti/elivibe/blob/v1.0.0/docs/installation.md#standalone-zip) instead. **Do not install that ZIP in Codex:** it lacks `agents/openai.yaml`, the file that keeps Codex invocation explicit-only.
+Stop if the manifest entry is missing, duplicated or doesn't verify. Use only the extracted `elivibe/` folder as the skill source. Leave the ZIP's root `README.md` and `LICENSE` in staging, and include the license if you redistribute the skill.
+
+**If the release ZIP isn't available:** use the pinned plugin path for your host, or, if the tag is available, download the [v1.1.0 GitHub source archive](https://github.com/taibenvenuti/elivibe/archive/refs/tags/v1.1.0.zip). Extract it outside skill discovery and use `skills/elivibe/` inside the extracted source tree. The release `SHA256SUMS` does not cover this GitHub-generated archive; if you require a checksum-verified bundle, wait for the release ZIP and its manifest. Neither source needs a clone or build.
+
+For the older OMP-only release, follow the [v1.0.0 ZIP instructions](https://github.com/taibenvenuti/elivibe/blob/v1.0.0/docs/installation.md#standalone-zip). **Do not install that ZIP in Codex:** it lacks `agents/openai.yaml`, the file that keeps Codex invocation explicit-only.
 
 ### Copy into one project
 
@@ -168,7 +175,7 @@ From the project root, choose the destination for your host:
 | Claude Code | `.claude/skills/elivibe/` | `/elivibe` |
 | OMP | `.agents/skills/elivibe/` | `/skill:elivibe` (skill commands enabled) |
 
-Copy only the whole `elivibe/` skill folder from the prepared ZIP or GitHub snapshot, including `SKILL.md` and `agents/openai.yaml`. This recipe refuses to install a source missing either file. Set `source` to the extracted skill folder's absolute path and use `.claude/skills` instead of `.agents/skills` for Claude Code:
+Copy only the whole `elivibe/` skill folder from the release ZIP or tagged source archive, including `SKILL.md` and `agents/openai.yaml`. The commands below stop if either file is missing. Set `source` to the extracted skill folder's absolute path and use `.claude/skills` instead of `.agents/skills` for Claude Code:
 
 ```sh
 source=/absolute/path/to/extracted/elivibe

@@ -6,12 +6,12 @@
   "author": {
     "name": "Tai Benvenuti"
   },
-  "homepage": "https://github.com/taibenvenuti/elivibe",
+  "homepage": "https://github.com/taibenvenuti/elivibe/blob/v1.1.0/README.md",
   "repository": "https://github.com/taibenvenuti/elivibe",
   "license": "MIT",
   "skills": "./elivibe",
   "icon": "./icon.png",
-  "documentationUrl": "https://github.com/taibenvenuti/elivibe/blob/501223323cc4b32cdf4eb15cc62d737fda644db1/docs/installation.md",
+  "documentationUrl": "https://github.com/taibenvenuti/elivibe/blob/v1.1.0/docs/installation.md",
   "supportUrl": "https://github.com/taibenvenuti/elivibe/issues",
-  "privacyPolicyUrl": "https://github.com/taibenvenuti/elivibe/blob/b900c7901f99a2cf41002ccd97b0aa28703d14a5/docs/privacy.md"
+  "privacyPolicyUrl": "https://github.com/taibenvenuti/elivibe/blob/v1.1.0/docs/privacy.md"
 }
