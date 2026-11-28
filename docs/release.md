@@ -343,6 +343,8 @@ sha256sum -c "$output/approved.sha256"
 npm publish "$npm_tarball" --ignore-scripts --access public --tag latest --registry="$registry"
 ```
 
+If npm accepts the tarball **for processing**, record that the write was accepted. An immediate public 404 or the previous `latest` does not authorize a second publish. Wait for the public registry to serve the version, then verify it below. If it remains unavailable, leave the distribution gate open and have the maintainer check npm's publication status.
+
 ### Verify public npm bytes and first use
 
 From a fresh unauthenticated consumer, using the approved tarball as a byte reference only, confirm the pinned version and `latest` resolve to the same public package. Verify registry `dist.integrity` and compare an independent tarball download to the approved bytes. Use the same verification for an already-published exact target and for recovery after an ambiguous publish response; never retry blindly.
