@@ -4,7 +4,7 @@ eliVibe ships one teaching skill for Codex, Claude Code, and Oh My Pi (OMP). Cod
 
 ## Tested combinations at GitHub v1.1.0
 
-The rows below are the pinned **historical, scripted release-lifecycle evidence** (Codex 0.162.1, Claude Code 2.1.291, OMP 19.2.1). They are not the versions of the accepted live walkthroughs, which are summarized in [current live coverage](#current-live-coverage).
+These release-time lifecycle checks used scripted model replies. The [live walkthroughs](#current-live-coverage) used newer Codex and Claude Code CLIs and the same OMP 19.2.1.
 
 | Host tested (Linux x64) | Source and explicit entry point | Activation and follow-up | Lifecycle and inference evidence |
 |---|---|---|---|
