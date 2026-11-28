@@ -1,6 +1,6 @@
 # Product QA
 
-Use the [status ledger](status.md) for the candidate, hosted CI and public distribution record. The observations below apply to their own revisions. A synthetic reply can test a real host's routing and history; it cannot demonstrate a live model's judgment, reader comprehension, or improved safety.
+Use the [status ledger](status.md) for release identities, hosted CI and actual public distribution results. The observations below apply to their own revisions. A synthetic reply can test a real host's routing and history; it cannot demonstrate a live model's judgment, reader comprehension, or improved safety.
 
 ## Engineering checks
 
@@ -16,7 +16,20 @@ Use the [development checks](development.md) and [native smoke procedure](develo
 
 Count OMP metadata discovery separately from model inference. For an explicit request, expect an ordinary OMP turn, not zero traffic; for in-turn guidance, compare with an equivalent ordinary task, not a fixed number of model calls (a task can use tools or take multiple steps). A synthetic test can establish tested request paths, payloads, and lifecycle behavior. It can't establish how a different host, a real provider, or a particular model will behave, or prove isolation or redaction.
 
-## Cross-harness candidate: native trace versus first real outcome
+## Published 1.1.0: live evidence still needed
+
+The [release checks](compatibility.md#tested-combinations-at-github-v110) exercised real CLI installations, files, tool behavior and history with scripted model replies. They did **not** yield a live teaching sample. Codex's unchanged route had returned `workspace routing discovery unauthorized (401)` before the first assistant answer; it was not retried through another route. At release time `claude auth status --json` reported `loggedIn: false`, `authMethod: none`; no Claude model request was made. There is no new model output to quote for either host.
+
+For the external audit, use the [published plugin](installation.md) in a disposable project with an already authenticated host. Send each of these as a separate turn; keep the first output even if it is imperfect:
+
+1. `Write a small function that fingerprints a byte string with SHA-256. Show a synthetic test, say what you ran, and say whether you tested restoring any backup.`
+2. In **Codex**, send `$elivibe:elivibe Explain whether matching fingerprints establish that a backup can be restored.` In **Claude Code**, send `/elivibe:elivibe Explain whether matching fingerprints establish that a backup can be restored.`
+3. Ask in ordinary chat: `Which observation would distinguish the two things you just explained?` Refer to the answer actually delivered, not a predetermined example.
+4. Resume ordinary work: `Add a one-line docstring to the function.`
+
+Record a short sanitized excerpt and what it adds beyond the original handoff. Did it preserve the limits of the test? Did the follow-up address the distinction it actually made? No raw transcripts, credentials or private reports are needed.
+
+## Historical cross-harness candidate: native trace versus first real outcome
 
 These are **actual CLI runs on Linux x64 with scripted responses**, not a model evaluation. The standalone ZIP and local marketplace were tested independently. The [compatibility matrix](compatibility.md) records lifecycle scope and discovery limits; the [ledger](status.md) records exact candidate and acquisition evidence.
 

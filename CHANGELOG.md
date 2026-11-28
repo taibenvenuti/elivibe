@@ -1,14 +1,14 @@
 # Changelog
 
-## 1.1.0
+## [v1.1.0](https://github.com/taibenvenuti/elivibe/releases/tag/v1.1.0) — 2026-11-28
 
 Explain a technical handoff without replacing it. All three hosts use the same teaching skill in the ordinary host conversation. Add a focus or a desired depth to the request, or ask a follow-up in chat. If a request needs a handoff that is not in view, provide it rather than asking eliVibe to reconstruct it.
 
 - **Codex:** Install the repository-backed plugin and invoke `$elivibe:elivibe`, or use `$elivibe` with the standalone skill. Both are explicit-only.
 - **Claude Code:** Install the repository-backed plugin and invoke `/elivibe:elivibe`, or use `/elivibe` with the standalone skill. Both are explicit-only.
-- **Oh My Pi (OMP):** Use `/elivibe` with the native plugin, including source-bound `/elivibe more` and optional modes and depth settings. Use `/skill:elivibe` with the standalone skill. The OMP GitHub and npm packages do not install the Codex or Claude Code plugins.
+- **Oh My Pi (OMP):** Use `/elivibe` with the native plugin, including source-bound `/elivibe more` and optional modes and depth settings. Use `/skill:elivibe` with the standalone skill. The native OMP plugin does not install the Codex or Claude Code plugins.
 
-The standalone ZIP now ships Codex's explicit-only policy alongside the teaching file. The standalone ZIP, native OMP archive, and npm package include the same consumer README. Neither skill-only plugin adds an inference client or needs separate eliVibe credentials or a permission grant. Neither enforces the native OMP adapter's explicit-turn tool veto.
+The standalone ZIP now ships Codex's explicit-only policy alongside the teaching file. The standalone ZIP and native OMP archive include the same consumer README. Neither skill-only plugin adds an inference client or needs separate eliVibe credentials or a permission grant. Neither enforces the native OMP adapter's explicit-turn tool veto.
 
 **Upgrading from 1.0.0:** No OMP preference migration is required. Install only one copy per host. When updating a standalone installation, replace the whole skill directory, not just `SKILL.md`.
 

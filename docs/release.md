@@ -1,6 +1,6 @@
 # Reviewing and releasing eliVibe
 
-[v1.0.0](https://github.com/taibenvenuti/elivibe/releases/tag/v1.0.0) is the stable GitHub release. It and [v0.1.0](https://github.com/taibenvenuti/elivibe/releases/tag/v0.1.0) each shipped two archives and `SHA256SUMS`; keep both tags and their assets unchanged. [Status](status.md) identifies the release commit and which distribution checks actually ran. Do not advertise GitHub source installation on an old ref, or npm installation before a version resolves and works.
+[v1.1.0](https://github.com/taibenvenuti/elivibe/releases/tag/v1.1.0) is the stable GitHub release. It, [v1.0.0](https://github.com/taibenvenuti/elivibe/releases/tag/v1.0.0) and [v0.1.0](https://github.com/taibenvenuti/elivibe/releases/tag/v0.1.0) each shipped two archives and `SHA256SUMS`. All three releases are immutable: keep their tags and assets unchanged. [Status](status.md) records the exact release commits and which distribution checks actually ran. Do not advertise GitHub source installation on an old ref, or npm installation before a version resolves and works.
 
 ## Version and contents
 
@@ -15,6 +15,8 @@ From a **clean checkout of the exact reviewed main commit** with its hosted chec
 test -z "$(git status --porcelain)"
 test "$(git rev-parse HEAD)" = "$sha"
 test "$(node -p 'require("./package.json").version')" = "$version"
+test "$(node -p 'require("./package-lock.json").version')" = "$version"
+test "$(node -p 'require("./package-lock.json").packages[""].version')" = "$version"
 output=$(mktemp -d)
 assets="$output/github"
 zip="elivibe-$version.zip"
@@ -39,28 +41,20 @@ Use the helper's private export for npm. Both Git's archive mask and the extract
 
 ### Published reproduction or candidate rehearsal
 
-The [read-only rehearsal workflow](../.github/workflows/release-rehearsal.yml) fetches full history and tags and uploads nothing. Its default **published** mode selects the highest stable annotated version tag reachable from the dispatch checkout (at post-1.0.0 `main`, `v1.0.0`) and uses that tag's peeled commit, manifest and builder. Leave `candidate_sha` blank; optionally name another already published annotated `published_tag`. For `v0.1.0`, the helper uses the tag's `tools/package.py` to reproduce its three GitHub assets only, without applying the pre-tag `--bootstrap` guard. Check the tag signature with existing trust and compare the build output with the recorded digests or anonymous downloads; a tag by itself is not proof of publication.
+The [read-only rehearsal workflow](../.github/workflows/release-rehearsal.yml) fetches full history and tags and uploads nothing. Its default **published** mode selects the highest stable annotated version tag reachable from the dispatch checkout (on post-1.1.0 `main`, `v1.1.0`) and uses that tag's peeled commit, manifest and builder. Leave `candidate_sha` blank; optionally name another already published annotated `published_tag`. For `v0.1.0`, the helper uses the tag's `tools/package.py` to reproduce its three GitHub assets only, without applying the pre-tag `--bootstrap` guard. Check the tag signature with existing trust and compare the build output with the recorded digests or anonymous downloads; a tag by itself is not proof of publication.
 
 For **candidate** mode, select the reviewed branch and enter its full `candidate_sha`, with `published_tag` blank. The workflow requires the selected checkout to match that SHA. The helper uses the candidate's own builder and manifest and rejects any existing `v<version>` tag. If a docs-only checkout still carries an already tagged version, use published mode for reproduction; do not substitute `HEAD` for the tag's commit or call the rebuilt tag a candidate.
 
-To exercise the same package steps locally without credentials, publication or changes to your checkout, run from a full clone containing both revisions and all tags. This example is the post-1.0.0 docs-only baseline and the reviewed cross-harness product checkpoint; replace the latter with the full SHA of any superseding review:
+To reproduce **published v1.1.0** locally, run from the repository root of a full clone with all release tags and the [pinned tools](development.md). The helper requires an existing empty output directory and uses the tagged revision's committed manifest and `npm@11.19.0`; there is no need to switch the checkout or install `node_modules` to run it. The hosted policy checks use the committed lock separately.
 
 ```bash
-driver="$PWD/dev/rehearse-release.sh"
-candidate=d038ddfefe0e39d45cb0f5df37da3cbacf45f511
 replay=$(mktemp -d)
-git clone --quiet --no-hardlinks -- "$PWD" "$replay/source"
-mkdir "$replay/published" "$replay/candidate"
-(
-  cd "$replay/source"
-  git switch --detach 15d6d84
-  sh "$driver" published "" "$replay/published"
-  git switch --detach "$candidate"
-  sh "$driver" candidate "$candidate" "$replay/candidate"
-)
+sh dev/rehearse-release.sh published v1.1.0 "$replay"
 ```
 
-Expect `published: v1.0.0 from caf8c089cad3a67d242d0eaa15329fca117a66a8` and `candidate: v1.1.0 from d038ddfefe0e39d45cb0f5df37da3cbacf45f511`. The existing tag should block **candidate** mode at `15d6d84`, not **published** mode. Compare the four published hashes with [status](status.md); log the candidate's four hashes separately.
+Expect `published: v1.1.0 from 13b0cb94f66f6f9aa7793737201a5f95e2674997`. Compare the three files in `$replay/github` with the public downloads or approved digests in [status](status.md). Compare `$replay/elivibe-1.1.0.tgz` with its approved digest separately: this is a local reproduction, not a public npm download.
+
+**Future candidate only — do not run candidate mode for v1.1.0.** Use the [candidate build](#version-and-contents) only before the future tag exists, from the exact approved main SHA with its approved version in the manifest and lock and a new empty output directory. The helper takes `candidate SHA EMPTY_OUTPUT_DIR` and refuses an existing `v<version>` tag even if the SHA differs from the tag's commit. Keep those pre-tag digests separate from the published record.
 
 ### Smoke the intended distribution
 
@@ -77,23 +71,25 @@ For published **1.0.0**, use that tag's own smoke driver and the **public** `eli
 
 ```bash
 stable=v1.0.0
+stable_replay=$(mktemp -d)
+sh dev/rehearse-release.sh published "$stable" "$stable_replay"
 stable_dir=$(mktemp -d)
 mkdir "$stable_dir/source"
 git archive --format=tar -o "$stable_dir/source.tar" "$stable"
 tar -xf "$stable_dir/source.tar" -C "$stable_dir/source"
 for file in elivibe-1.0.0.zip elivibe-omp-1.0.0.tar.gz SHA256SUMS; do
   curl -q -fsSL "https://github.com/taibenvenuti/elivibe/releases/download/$stable/$file" -o "$stable_dir/$file"
-  cmp "$replay/published/github/$file" "$stable_dir/$file"
+  cmp "$stable_replay/github/$file" "$stable_dir/$file"
 done
 curl -q -fsS https://registry.npmjs.org/elivibe/-/elivibe-1.0.0.tgz -o "$stable_dir/elivibe-1.0.0.tgz"
-cmp "$replay/published/elivibe-1.0.0.tgz" "$stable_dir/elivibe-1.0.0.tgz"
+cmp "$stable_replay/elivibe-1.0.0.tgz" "$stable_dir/elivibe-1.0.0.tgz"
 (cd "$stable_dir" && sha256sum -c SHA256SUMS)
 python3.14 "$stable_dir/source/dev/omp_smoke.py" --omp "$(command -v omp)" \
   --archive "$stable_dir/elivibe-omp-1.0.0.tar.gz" --skill-archive "$stable_dir/elivibe-1.0.0.zip" \
   --npm-archive "$stable_dir/elivibe-1.0.0.tgz"
 ```
 
-This OMP smoke uses controlled loopback inference and a disposable registry; actual public acquisition and first use are separate checks. For the cross-harness candidate only, exercise the same candidate ZIP and exact Git source in fresh Codex CLI 0.162.1 and Claude Code 2.1.291 profiles on Linux x64; compare the installed canonical skill, verify explicit discovery and removal, and record the actual source route/ref and resolved SHA. For an unpushed candidate use a detached local checkout at the reviewed SHA; for the remote gate use the approved GitHub ref and verify its resolution (Claude's `#ref` syntax requires a branch or tag). See [installation](installation.md) for the host commands. Label scripted inference, live output and untested routes separately; do not treat stable 1.0.0 as having the candidate marketplace layouts.
+This OMP smoke uses controlled loopback inference and a disposable registry; actual public acquisition and first use are separate checks. For a release with Codex and Claude Code packaging, exercise the reviewed ZIP and exact Git source in fresh Codex CLI 0.162.1 and Claude Code 2.1.291 profiles on Linux x64. Compare the installed canonical skill, verify explicit discovery and removal, and record the source route/ref and resolved SHA. Use a detached local checkout at the reviewed SHA for an unpushed candidate; for stable public acquisition use the published ZIP and tag (Claude's `#ref` syntax requires a branch or tag). See [installation](installation.md) for the host commands. Label scripted inference, live output and untested routes separately.
 
 ### Directory preparation — local only
 
@@ -252,13 +248,15 @@ done
 python3.14 dev/package.py verify --commit "$sha" --version "$version" --license-id MIT --output-dir "$public_assets"
 ```
 
-Use the public downloads to [try the standalone skill and link the native archive](installation.md). Record the verified public URL and consumer results before closing this gate.
+Use the public downloads to [try the standalone skill and link the native archive](installation.md). Record the verified public URL and observed consumer results in [status](status.md).
+
+Publishing affects only the approved GitHub draft and its three existing assets. A subsequent docs-only closure records observed results and remaining gates without changing the tag, assets, runtime or npm package; it still follows the [ordinary protected-main PR requirements](#protected-squash-merge-and-git-source). Independently audit the published bytes and consumer journeys before promotion. npm publication and directory submission each require separate authority and evidence.
 
 ### First npm publication
 
 The [first npm version, `elivibe@1.0.0`](https://www.npmjs.com/package/elivibe/v/1.0.0), is public and [consumer-verified](status.md). The bootstrap steps below are retained for reference; do not rerun them for `elivibe`.
 
-This is a separate write. Use the public registry and exact `elivibe` identity from the reviewed tarball. The package and `/latest` returned 404 during review; that is not a reservation or proof of ownership. Recheck anonymously just before the decision. For the planned **first** npm release, both must still be 404; a 200, conflicting owner or unexpected status means stop and investigate. In the owner's authorized publisher environment, compare `npm whoami` to the approved account. Identity does not prove permission to claim an unpublished name. Never read or print npm credentials or change auth settings to force a release.
+This was a separate write to the public registry under the exact `elivibe` identity from the reviewed tarball. The package and `/latest` returned 404 during review; that was not a reservation or proof of ownership. The first-version preflight required both still to return 404 immediately before the decision; a 200, conflicting owner or unexpected status meant stop and investigate. The authorized publisher had to match `npm whoami` to the approved account; identity alone did not establish permission to claim an unpublished name. Never read or print npm credentials or change auth settings to force a release.
 
 ```bash
 registry=https://registry.npmjs.org
@@ -298,7 +296,7 @@ else
 fi
 ```
 
-Separately inspect the registry anonymously. Set `npm_latest_before` from the approved rollout baseline, not from this lookup (for the planned 1.1.0 release it is `1.0.0`). A 404 at the **version endpoint** is required to publish; the existing package and `latest` are expected to resolve.
+Separately inspect the registry anonymously. Set `npm_latest_before` from the approved rollout baseline, not from this lookup (for npm 1.1.0 the baseline is `1.0.0`; see [status](status.md) for the pending publisher gate). A 404 at the **version endpoint** is required to publish; the existing package and `latest` are expected to resolve.
 
 ```bash
 registry=https://registry.npmjs.org

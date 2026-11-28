@@ -42,9 +42,9 @@ Keep developer scripts in `dev/`, not root `tools/`: OMP discovers scripts in an
 
 The native sandbox checks its own non-root identity, dropped capabilities, distinct loopback-only network namespace and lack of an external route. Hosted mode additionally requires the expected enforced AppArmor stack. The [runner preflight](../.github/native-namespace.sh) is for disposable hosted Ubuntu runners only. Do not run it on a workstation or relax global policy to make a smoke pass. Synthetic loopback responses make request payloads inspectable without exposing a developer's normal profile or credentials. They do not establish provider support, reader outcomes or live quality.
 
-## Codex and Claude Code preview checks
+## Codex and Claude Code package checks
 
-Use Codex CLI **0.162.1** and Claude Code **2.1.291** on Linux x64; record their `--version` output, the exact checkout and archive identity, and the discovery scope. Build or obtain the review ZIP as described in the [release build](release.md#version-and-contents). Test it **and** the checkout marketplace in separate scratch projects/profiles; do not keep both copies visible. Keep the extraction outside discovery roots and compare the installed skill and Codex policy with the reviewed bytes. See [installation](installation.md) for consumer commands.
+Use Codex CLI **0.162.1** and Claude Code **2.1.291** on Linux x64; record their `--version` output, the exact source revision and archive identity, and the discovery scope. Use the [reviewed candidate build](release.md#version-and-contents) or the exact published ZIP and tag. Test the ZIP **and** the Git marketplace in separate scratch projects/profiles; do not keep both copies visible. Keep the extraction outside discovery roots and compare the installed skill and Codex policy with the reviewed bytes. See [installation](installation.md) for consumer commands.
 
 For local package validation, set `checkout` to the absolute path of the reviewed checkout. Run these from disposable host state, not your normal profile:
 
@@ -63,7 +63,7 @@ claude plugin install elivibe@elivibe-marketplace --scope local
 
 Repository checks validate manifest metadata, package boundaries and byte identity; they do not drive Codex/Claude inference. Local CLI validation and discovery are not hosted CI, anonymous GitHub acquisition, or directory validation. For future submission review, compare the narrow package with [OpenAI's ZIP contract](https://developers.openai.com/plugins/deploy/submission) and Anthropic's [strict CLI and portal checklist](https://code.claude.com/docs/en/plugins/publish#submit-to-anthropics-directory). Check the README, support and privacy URLs against the actual public ref. Do not upload or submit during development.
 
-No mandatory provider CI. An authorized optional walkthrough uses the host's existing route without new grants, endpoint overrides or credential copying. The Codex live attempt stopped before output on HTTP 401; Claude Code had no authorized route and made no live request. Neither is a reason to substitute scripted text for a real answer or work around the host's access controls. See [Product QA](product-qa.md) for what the trials observed.
+No mandatory provider CI. An authorized optional walkthrough uses the host's existing route without new grants, endpoint overrides or credential copying. In the [development trials](product-qa.md), the Codex live attempt stopped before output on HTTP 401; Claude Code had no authorized route and made no live request. Neither is a reason to substitute scripted text for a real answer or work around the host's access controls.
 
 ## Teaching and first-use review
 
