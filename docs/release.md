@@ -1,6 +1,6 @@
 # Reviewing and releasing eliVibe
 
-[v1.1.0](https://github.com/taibenvenuti/elivibe/releases/tag/v1.1.0) is the stable GitHub release. It, [v1.0.0](https://github.com/taibenvenuti/elivibe/releases/tag/v1.0.0) and [v0.1.0](https://github.com/taibenvenuti/elivibe/releases/tag/v0.1.0) each shipped two archives and `SHA256SUMS`. All three releases are immutable: keep their tags and assets unchanged. [Status](status.md) records the exact release commits and which distribution checks actually ran. Do not advertise GitHub source installation on an old ref, or npm installation before a version resolves and works.
+[v1.1.0](https://github.com/taibenvenuti/elivibe/releases/tag/v1.1.0) is the stable GitHub release. It, [v1.0.0](https://github.com/taibenvenuti/elivibe/releases/tag/v1.0.0) and [v0.1.0](https://github.com/taibenvenuti/elivibe/releases/tag/v0.1.0) each shipped two archives and `SHA256SUMS`. Project policy forbids replacing their tags or assets; this is not a claim that GitHub's immutable-release feature is enabled. [Status](status.md) records the exact release commits and which distribution checks actually ran. Do not advertise GitHub source installation on an old ref, or npm installation before a version resolves and works.
 
 ## Version and contents
 
@@ -94,6 +94,8 @@ This OMP smoke uses controlled loopback inference and a disposable registry; act
 ### Directory preparation — local only
 
 OpenAI's [submission workflow](https://developers.openai.com/plugins/deploy/submission) has a skills-only ZIP path. Prepare an inspection ZIP from the reviewed cross-harness tree with Git supporting `archive --mtime`. It is **not upload-approved**, not the standalone GitHub release ZIP, not a fourth GitHub asset and not the npm tarball.
+
+To reproduce the reviewed 1.1.0 directory ZIP, set `version=1.1.0` and `sha=$(git rev-parse 'v1.1.0^{commit}')` before running this block. This needs the tagged source, not an unpublished candidate or a directory account.
 
 ```bash
 dir=$(mktemp -d)
