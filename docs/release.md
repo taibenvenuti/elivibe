@@ -298,7 +298,7 @@ else
 fi
 ```
 
-Separately inspect the registry anonymously. Set `npm_latest_before` from the approved rollout baseline, not from this lookup (for npm 1.1.0 the baseline is `1.0.0`; see [status](status.md) for the pending publisher gate). A 404 at the **version endpoint** is required to publish; the existing package and `latest` are expected to resolve.
+Separately inspect the registry anonymously. Set `npm_latest_before` from the approved rollout baseline, not from this lookup. For [the 1.1.0 publication](status.md#release-identity-and-reproducibility), the baseline was `1.0.0`. A 404 at the **version endpoint** is required before the first publish attempt; the existing package and `latest` are expected to resolve.
 
 ```bash
 registry=https://registry.npmjs.org
@@ -342,6 +342,8 @@ test "$(curl -q -fsS -H 'Cache-Control: no-cache' "$registry/elivibe/latest" |
 sha256sum -c "$output/approved.sha256"
 npm publish "$npm_tarball" --ignore-scripts --access public --tag latest --registry="$registry"
 ```
+
+If npm accepts the tarball **for processing**, record that the write was accepted. An immediate public 404 or the previous `latest` does not authorize a second publish. Wait for the public registry to serve the version, then verify it below. If it remains unavailable, leave the distribution gate open and have the maintainer check npm's publication status.
 
 ### Verify public npm bytes and first use
 

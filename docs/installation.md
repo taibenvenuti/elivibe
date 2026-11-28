@@ -2,7 +2,7 @@
 
 This guide installs **eliVibe v1.1.0**. Start with the host you already use and its usual model access. No separate eliVibe account, build, or manual clone is needed. Install **one** copy per host: a plugin or the [standalone skill](#standalone-skill). If you already have a copy, [update or remove it](#update-roll-back-or-uninstall) instead of adding a second one.
 
-Use the [v1.1.0 GitHub tag and release downloads](https://github.com/taibenvenuti/elivibe/releases/tag/v1.1.0). npm 1.1.0 is not published; see [current availability](https://github.com/taibenvenuti/elivibe/blob/main/docs/status.md). For the previous OMP-only release, use the [v1.0.0 installation guide](https://github.com/taibenvenuti/elivibe/blob/v1.0.0/docs/installation.md).
+The [GitHub tag and release downloads](https://github.com/taibenvenuti/elivibe/releases/tag/v1.1.0) and the [OMP npm package](https://www.npmjs.com/package/elivibe/v/1.1.0) are public. For the previous OMP-only release, use the [v1.0.0 guide](https://github.com/taibenvenuti/elivibe/blob/v1.0.0/docs/installation.md).
 
 ## Codex
 
@@ -29,7 +29,7 @@ The `local` scope applies to this project on your machine (`.claude/settings.loc
 ## Oh My Pi (OMP)
 
 ```sh
-omp plugin install 'github:taibenvenuti/elivibe#v1.1.0'
+omp plugin install elivibe@1.1.0
 ```
 
 If you're replacing an existing install, [check its source first](#check-the-installation) and [migrate a v0.1.0 link](#move-from-a-v010-linked-install) before installing. Open a new OMP session and use `/elivibe` for [your first explanation](#try-your-first-explanation).
@@ -42,7 +42,7 @@ Use OMP 19.2.1 in the intended profile and pick **one** source.
 |---|---|
 | GitHub release tag | `omp plugin install 'github:taibenvenuti/elivibe#v1.1.0'` |
 | Offline native archive | [Verify and extract the release archive, then link its `elivibe-omp/` directory](#verify-and-link-an-offline-archive). |
-| npm (only once [listed as available](https://github.com/taibenvenuti/elivibe/blob/main/docs/status.md)) | `omp plugin install elivibe@1.1.0` |
+| Pinned npm release | `omp plugin install elivibe@1.1.0` |
 
 OMP's standalone binary embeds the package-manager runtime; no separate Python, uv, Node or Bun installation is needed. OMP can share its user plugin directory across profiles. Check the active profile and installation path before changing an existing registration.
 
@@ -128,7 +128,7 @@ Record the installed version, source, and scope before changing anything. Change
 
 ### OMP plugin
 
-- **Registry source only:** once npm 1.1.0 is available, confirm this is an npm install before running `omp plugin install elivibe@1.1.0 --force`. To roll back, use the same command with the exact previous npm version. Never force over a GitHub install, local link, or unknown source.
+- **Registry source only:** confirm this is an npm install before running `omp plugin install elivibe@1.1.0 --force`. To roll back to the previous release, run `omp plugin install elivibe@1.0.0 --force`. These are pinned reinstalls, not `omp plugin upgrade`. Never force over a GitHub install, local link, or unknown source.
 - **GitHub source:** record the installed tag or commit. Uninstall the current registration and install from the exact tag in the target release's guide. To roll back, reinstall the previous verified ref.
 - **Linked directory:** keep the previous verified directory outside skill discovery. Unregister the current link and `omp plugin link` the new extracted directory, or link the previous directory to roll back. Don't overwrite a linked path or use `omp plugin upgrade` on a link. A rollback to v0.1.0 restores its old side-request behavior.
 - **Remove:** run `omp plugin uninstall elivibe` in the profile that owns the registration. Confirm it's gone with `omp plugin list --json`. Unregistering a link doesn't delete its target: keep it for rollback or delete just that directory after confirming nothing else uses it. Restore a former standalone copy only if you want skill-only use.

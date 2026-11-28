@@ -14,7 +14,7 @@ The standalone ZIP now ships Codex's explicit-only policy alongside the teaching
 
 **Tested scope:** Linux x64 CLI: Codex 0.162.1, Claude Code 2.1.291, and OMP 19.2.1. Real host runs with scripted replies exercised invocation and follow-up, not live-provider compatibility or explanation quality. No desktop, IDE, web, or mobile support is asserted, and no official vendor directory listing is included.
 
-[Installation and removal](https://github.com/taibenvenuti/elivibe/blob/v1.1.0/docs/installation.md) · [Tested paths and limits](https://github.com/taibenvenuti/elivibe/blob/v1.1.0/docs/compatibility.md) · [Release status and evidence](https://github.com/taibenvenuti/elivibe/blob/main/docs/status.md)
+[npm 1.1.0](https://www.npmjs.com/package/elivibe/v/1.1.0) · [Installation and removal](https://github.com/taibenvenuti/elivibe/blob/v1.1.0/docs/installation.md) · [Tested paths and limits](https://github.com/taibenvenuti/elivibe/blob/main/docs/compatibility.md) · [Release status and evidence](https://github.com/taibenvenuti/elivibe/blob/main/docs/status.md)
 
 ## [v1.0.0](https://github.com/taibenvenuti/elivibe/releases/tag/v1.0.0) — 2026-11-27
 

@@ -18,7 +18,7 @@ Count OMP metadata discovery separately from model inference. For an explicit re
 
 ## Published 1.1.0: live evidence still needed
 
-The [release checks](compatibility.md#tested-combinations-at-github-v110) exercised real CLI installations, files, tool behavior and history with scripted model replies. They did **not** yield a live teaching sample. Codex's unchanged route had returned `workspace routing discovery unauthorized (401)` before the first assistant answer; it was not retried through another route. At release time `claude auth status --json` reported `loggedIn: false`, `authMethod: none`; no Claude model request was made. There is no new model output to quote for either host.
+The [release checks](compatibility.md#tested-combinations-at-github-v110) exercised real CLI installations, files, tool behavior and history with scripted model replies. They did **not** yield a live teaching sample. At release time `codex login status` reported a ChatGPT login; that is not proof of inference access. The unchanged route had returned `workspace routing discovery unauthorized (401)` before the first assistant answer and was not retried. `claude auth status --json` reported `loggedIn: false`, `authMethod: none`; no Claude model request was made. There is no new model output to quote for either host.
 
 For the external audit, use the [published plugin](installation.md) in a disposable project with an already authenticated host. Send each of these as a separate turn; keep the first output even if it is imperfect:
 
