@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-The current public release is [v1.0.0](https://github.com/taibenvenuti/elivibe/releases/tag/v1.0.0). There is no security support commitment. See [compatibility](docs/compatibility.md) for evaluated targets. Product checks are not an independent security audit.
+See [published releases](https://github.com/taibenvenuti/elivibe/releases) and the [maintained distribution record](https://github.com/taibenvenuti/elivibe/blob/main/docs/status.md) for current availability. There is no security support commitment. See [compatibility](docs/compatibility.md) for evaluated targets. Product checks are not an independent security audit.
 
 ## Reporting privately
 

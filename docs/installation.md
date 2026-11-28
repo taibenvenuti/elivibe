@@ -163,7 +163,7 @@ Stop if the manifest entry is missing, duplicated or doesn't verify. Use only th
 
 **If the release ZIP isn't available:** use the pinned plugin path for your host, or, if the tag is available, download the [v1.1.0 GitHub source archive](https://github.com/taibenvenuti/elivibe/archive/refs/tags/v1.1.0.zip). Extract it outside skill discovery and use `skills/elivibe/` inside the extracted source tree. The release `SHA256SUMS` does not cover this GitHub-generated archive; if you require a checksum-verified bundle, wait for the release ZIP and its manifest. Neither source needs a clone or build.
 
-For the older OMP-only release, follow the [v1.0.0 ZIP instructions](https://github.com/taibenvenuti/elivibe/blob/v1.0.0/docs/installation.md#standalone-zip). **Do not install that ZIP in Codex:** it lacks `agents/openai.yaml`, the file that keeps Codex invocation explicit-only.
+For the older OMP-only release, follow the [v1.0.0 standalone skill instructions](https://github.com/taibenvenuti/elivibe/blob/v1.0.0/docs/installation.md#standalone-skill). **Do not install that ZIP in Codex:** it lacks `agents/openai.yaml`, the file that keeps Codex invocation explicit-only.
 
 ### Copy into one project
 
