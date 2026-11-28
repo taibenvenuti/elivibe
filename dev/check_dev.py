@@ -10,7 +10,7 @@ from collections import Counter
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
-from package import skill_digest, validate_manifest
+from package import validate_checkout_metadata, validate_manifest
 
 SUBJECT = re.compile(r"[a-z]+(?:\([^\s()]+\))?!?: \S[^\r\n]*")
 LINK = re.compile(r"\[[^\]]+\]\(([^\s)]+)\)")
@@ -25,9 +25,11 @@ DOCS = (
     "SECURITY.md",
     "CODE_OF_CONDUCT.md",
     ".github/PULL_REQUEST_TEMPLATE.md",
+    "skills/README.md",
     "skills/elivibe/SKILL.md",
     "design/adr/0004-conceptual-explanation-and-native-integration.md",
     "design/adr/0005-host-managed-teaching-and-distribution.md",
+    "design/adr/0006-one-skill-host-owned-invocation.md",
 )
 
 
@@ -37,7 +39,6 @@ def require(condition: bool, message: str) -> None:
 
 
 def configuration() -> None:
-    skill_digest(Path.cwd())
     project = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
     require(
         project["tool"]["pytest"]["ini_options"]["testpaths"] == ["tests/product"],
@@ -45,6 +46,7 @@ def configuration() -> None:
     )
     manifest = json.loads(Path("package.json").read_bytes())
     validate_manifest(manifest, project["project"]["version"])
+    validate_checkout_metadata(Path.cwd(), manifest["version"])
     lock = json.loads(Path("package-lock.json").read_bytes())
     packages = lock["packages"]
     locked_root = packages[""]

@@ -14,6 +14,16 @@ def skill(tmp_path):
         "disable-model-invocation: true\n---\n\n# Handoff\n",
         encoding="utf-8",
     )
+    policy = path.parent / "agents/openai.yaml"
+    policy.parent.mkdir()
+    policy.write_bytes(b"policy:\n  allow_implicit_invocation: false\n")
+    (tmp_path / "skills/.codex-plugin").mkdir()
+    (tmp_path / "skills/.codex-plugin/plugin.json").write_text("{}")
+    (tmp_path / "skills/.claude-plugin").mkdir()
+    (tmp_path / "skills/.claude-plugin/plugin.json").write_text("{}")
+    (tmp_path / "skills/LICENSE").touch()
+    (tmp_path / "skills/README.md").touch()
+    (tmp_path / "skills/icon.png").touch()
     return path
 
 
@@ -21,9 +31,16 @@ def test_package_reports_current_bytes(skill, tmp_path):
     assert skill_digest(tmp_path) == hashlib.sha256(skill.read_bytes()).hexdigest()
 
 
-@pytest.mark.parametrize("layer", ["root", "directory", "file"])
+@pytest.mark.parametrize("layer", ["root", "directory", "file", "agents", "policy"])
 def test_package_rejects_symlink_escape(skill, tmp_path, layer):
-    path = {"root": skill.parents[1], "directory": skill.parent, "file": skill}[layer]
+    policy = skill.parent / "agents/openai.yaml"
+    path = {
+        "root": skill.parents[1],
+        "directory": skill.parent,
+        "file": skill,
+        "agents": policy.parent,
+        "policy": policy,
+    }[layer]
     escape = tmp_path / "outside"
     path.rename(escape)
     path.symlink_to(escape, target_is_directory=escape.is_dir())
@@ -35,6 +52,12 @@ def test_package_rejects_symlink_escape(skill, tmp_path, layer):
 def test_package_rejects_extras(skill, tmp_path, where):
     directory = skill.parents[1] if where == "sibling" else skill.parent
     (directory / "unexpected").touch()
+    with pytest.raises(ValueError, match="unexpected skill tree"):
+        skill_digest(tmp_path)
+
+
+def test_package_rejects_extra_metadata(skill, tmp_path):
+    (skill.parent / "agents/SKILL.md").touch()
     with pytest.raises(ValueError, match="unexpected skill tree"):
         skill_digest(tmp_path)
 

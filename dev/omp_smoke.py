@@ -30,6 +30,8 @@ WORK = TRIAL / "work"
 OMP = "/runtime/omp"
 PRIMARY = "smoke-primary"
 SKILL = Path("skills/elivibe/SKILL.md")
+CODEX_SKILL = SKILL.parent / "agents/openai.yaml"
+CODEX_POLICY = b"policy:\n  allow_implicit_invocation: false\n"
 ADAPTER = Path("adapters/omp/index.ts")
 CORE = Path("core/index.ts")
 EXPLICIT = "eliVibe explicit explanation."
@@ -191,7 +193,12 @@ def isolate(args):
         raise SystemExit(
             "The OMP smoke requires Linux bubblewrap and the pinned OMP binary."
         )
-    for path in (args.archive, args.npm_archive, args.skill_archive):
+    for path in (
+        args.archive,
+        args.npm_archive,
+        args.skill_archive,
+        args.source_archive,
+    ):
         if not path.is_file():
             raise SystemExit(f"Missing prebuilt archive: {path}")
     addons = []
@@ -267,6 +274,9 @@ def isolate(args):
             "--ro-bind",
             str(args.skill_archive.resolve()),
             "/inputs/standalone.zip",
+            "--ro-bind",
+            str(args.source_archive.resolve()),
+            "/inputs/source.tar.gz",
             "--ro-bind",
             str(Path(__file__).resolve()),
             "/inputs/smoke.py",
@@ -622,17 +632,30 @@ def unpack(spec, root):
 
 
 def payload(root):
-    manifest = json.loads((root / "package.json").read_text())
+    files = {}
+    for path in root.rglob("*"):
+        assert not path.is_symlink(), path
+        if not path.is_dir():
+            assert path.is_file(), path
+            files[path.relative_to(root)] = path.read_bytes()
+    expected = {
+        Path("package.json"),
+        Path("LICENSE"),
+        Path("README.md"),
+        ADAPTER,
+        CORE,
+        SKILL,
+    }
+    assert files.keys() in (expected, expected | {Path("NOTICE")}), root
+    manifest = json.loads(files[Path("package.json")])
     assert manifest["name"] == "elivibe" and manifest["license"] == "MIT"
     assert manifest.get("omp") == {"extensions": [f"./{ADAPTER}"]}, manifest
     assert not manifest.get("private") and not manifest.get("dependencies"), manifest
-    assert not manifest.get("scripts") and not (root / "providers").exists(), root
-    assert list(root.rglob("SKILL.md")) == [root / SKILL], root
-    assert all((root / name).is_file() for name in ("LICENSE", ADAPTER, CORE)), root
-    skill = (root / SKILL).read_bytes()
+    assert not manifest.get("scripts"), manifest
+    skill = files[SKILL]
     assert skill.startswith(b"---\n")
     assert b"disable-model-invocation: true" in skill.split(b"---", 2)[1].splitlines()
-    return manifest, skill
+    return manifest, files
 
 
 def stage_registry(sink, manifest):
@@ -714,6 +737,7 @@ def exercise(sink, peers, *, hosted, netns):
                 assert commands[name]["source"] == source, commands[name]
             else:
                 assert name not in commands, commands
+        return commands
 
     def texts(call, role):
         return [
@@ -879,17 +903,22 @@ def exercise(sink, peers, *, hosted, netns):
     unpack("/inputs/candidate.tgz", TRIAL / "npm")
     linked = TRIAL / "native/elivibe-omp"
     npm = TRIAL / "npm/package"
-    _, native_skill = payload(linked)
-    npm_manifest, npm_skill = payload(npm)
-    for path in ("package.json", ADAPTER, CORE, "LICENSE"):
-        assert (linked / path).read_bytes() == (npm / path).read_bytes(), path
-    assert native_skill == npm_skill
+    _, native_files = payload(linked)
+    npm_manifest, npm_files = payload(npm)
+    assert native_files == npm_files
+    native_skill = native_files[SKILL]
+    portable_skill = "elivibe/SKILL.md"
+    portable_codex = "elivibe/agents/openai.yaml"
     with ZipFile("/inputs/standalone.zip") as archive:
-        assert [name for name in archive.namelist() if name.endswith("/SKILL.md")] == [
-            "elivibe/SKILL.md"
-        ]
-        assert archive.read("elivibe/SKILL.md") == native_skill
-        assert archive.read("LICENSE") == (npm / "LICENSE").read_bytes()
+        expected = [portable_skill, portable_codex, "LICENSE", "README.md"]
+        if Path("NOTICE") in native_files:
+            expected.append("NOTICE")
+            assert archive.read("NOTICE") == native_files[Path("NOTICE")]
+        assert archive.namelist() == expected
+        assert archive.read(portable_skill) == native_skill
+        assert archive.read(portable_codex) == CODEX_POLICY
+        assert archive.read("LICENSE") == native_files[Path("LICENSE")]
+        assert archive.read("README.md") == native_files[Path("README.md")]
     _, frontmatter, body = native_skill.decode().split("---", 2)
     description = next(
         line.removeprefix("description: ")
@@ -898,8 +927,55 @@ def exercise(sink, peers, *, hosted, netns):
     )
     skill_body = body.strip()
 
+    source = TRIAL / "source"
+    unpack("/inputs/source.tar.gz", source)
+    for path, data in native_files.items():
+        assert (source / path).read_bytes() == data, path
+    for path in (
+        ".agents/plugins/marketplace.json",
+        ".claude-plugin/marketplace.json",
+        "skills/.codex-plugin/plugin.json",
+        "skills/.claude-plugin/plugin.json",
+    ):
+        assert (source / path).is_file(), path
+    assert (source / CODEX_SKILL).read_bytes() == CODEX_POLICY
+    native("plugin", "link", str(source))
+    assert assert_registration(npm_manifest["version"]).samefile(source)
+    with Rpc(peers, hosted=hosted, netns=netns) as rpc:
+        commands = discovery(rpc, adapter=True, skill=True)
+        matching_skills = {
+            name
+            for name, command in commands.items()
+            if command["source"] == "skill" and command["description"] == description
+        }
+        assert matching_skills == {"skill:elivibe"}, matching_skills
+        response, _ = step(rpc, "/elivibe")
+        assert shows(response, "No completed handoff is available in this context.")
+        skill_call(rpc, source / SKILL)
+    native("plugin", "uninstall", "elivibe")
+    assert_registration()
+    assert (source / SKILL).read_bytes() == native_skill
+    with Rpc(peers, hosted=hosted, netns=netns) as rpc:
+        discovery(rpc)
+
     native("plugin", "link", str(linked))
     version, previous = stage_registry(sink, npm_manifest)
+
+    def assert_install(number):
+        root = assert_registration(number)
+        manifest, files = payload(root)
+        if number == version:
+            assert files == npm_files
+        else:
+            assert files.keys() == npm_files.keys()
+            assert manifest == {**npm_manifest, "version": number}
+            assert all(
+                data == npm_files[name]
+                for name, data in files.items()
+                if name != Path("package.json")
+            )
+        return root
+
     assert assert_registration(version).samefile(linked)
     with Rpc(peers, hosted=hosted, netns=netns) as rpc:
         discovery(rpc, adapter=True, skill=True)
@@ -915,19 +991,15 @@ def exercise(sink, peers, *, hosted, netns):
     assert (linked / SKILL).read_bytes() == native_skill
 
     native("plugin", "install", f"elivibe@{version}")
-    installed = assert_registration(version)
+    installed = assert_install(version)
     assert not installed.samefile(linked) and not installed.samefile(npm)
-    assert payload(installed)[1] == npm_skill
-    assert (installed / ADAPTER).read_bytes() == (npm / ADAPTER).read_bytes()
     native("plugin", "uninstall", "elivibe")
     assert_registration()
     native("plugin", "install", f"elivibe@{previous}")
-    assert payload(assert_registration(previous))[1] == npm_skill
+    assert_install(previous)
     for number in (version, previous):
         native("plugin", "install", f"elivibe@{number}", "--force")
-        root = assert_registration(number)
-        assert payload(root)[1] == npm_skill
-        assert (root / ADAPTER).read_bytes() == (npm / ADAPTER).read_bytes()
+        root = assert_install(number)
         with Rpc(peers, hosted=hosted, netns=netns) as rpc:
             discovery(rpc, adapter=True, skill=True)
             skill_call(rpc, root / SKILL)
@@ -948,7 +1020,7 @@ def exercise(sink, peers, *, hosted, netns):
         flush=True,
     )
     native("plugin", "install", f"elivibe@{version}")
-    assert_registration(version)
+    assert_install(version)
 
     with Rpc(peers, hosted=hosted, netns=netns) as rpc:
         discovery(rpc, adapter=True, skill=True)
@@ -1077,9 +1149,11 @@ def exercise(sink, peers, *, hosted, netns):
     assert not installed.exists(), "the npm installation remained after removal"
 
     standalone = Path.home() / ".agents" / SKILL
-    standalone.parent.mkdir(parents=True)
+    codex = Path.home() / ".agents" / CODEX_SKILL
+    codex.parent.mkdir(parents=True)
     with ZipFile("/inputs/standalone.zip") as archive:
-        standalone.write_bytes(archive.read("elivibe/SKILL.md"))
+        standalone.write_bytes(archive.read(portable_skill))
+        codex.write_bytes(archive.read(portable_codex))
     with Rpc(peers, hosted=hosted, netns=netns) as rpc:
         discovery(rpc, skill=True)
         step(
@@ -1088,6 +1162,8 @@ def exercise(sink, peers, *, hosted, netns):
             "SMOKE_STANDALONE_ORDINARY",
         )
         skill_call(rpc, standalone)
+    codex.unlink()
+    codex.parent.rmdir()
     standalone.unlink()
     with Rpc(peers, hosted=hosted, netns=netns) as rpc:
         discovery(rpc)
@@ -1111,7 +1187,8 @@ def exercise(sink, peers, *, hosted, netns):
         "normal work retained its tools. Original report and exact follow-up context remained in the session."
     )
     print(
-        "Native link and standalone skill discovery/removal passed; consumer files preserved."
+        "Git source, native link and standalone skill discovery/removal passed; "
+        "consumer files preserved."
     )
     if peers:
         print(
@@ -1193,6 +1270,12 @@ if __name__ == "__main__":
             type=Path,
             required=True,
             help="verified standalone skill ZIP",
+        )
+        parser.add_argument(
+            "--source-archive",
+            type=Path,
+            required=True,
+            help="complete git archive --format=tar.gz of the same candidate commit",
         )
         parser.add_argument("--ponytail", type=Path)
         parser.add_argument("--context-mode", type=Path)

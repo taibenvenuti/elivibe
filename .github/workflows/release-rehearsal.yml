@@ -1,6 +1,20 @@
 name: Release rehearsal (no publication)
 on:
   workflow_dispatch:
+    inputs:
+      mode:
+        description: Reproduce a published tag or rehearse the reviewed checkout
+        type: choice
+        options:
+          - published
+          - candidate
+        default: published
+      published_tag:
+        description: Published mode only (defaults to latest reachable stable annotated tag)
+        type: string
+      candidate_sha:
+        description: Candidate mode only; reviewed full SHA of the selected branch
+        type: string
 permissions:
   contents: read
 concurrency:
@@ -8,7 +22,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   rehearsal:
-    name: Disposable release rules and candidate packages
+    name: Release policy fixtures and exact-revision packages
     runs-on: ubuntu-24.04
     timeout-minutes: 8
     steps:
@@ -24,7 +38,22 @@ jobs:
           node-version: '24.21.0'
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: node dev/release-rules.mjs
-      - name: Rebuild and inspect both packages (no upload)
+      - name: Rebuild and inspect packages (no upload)
+        env:
+          MODE: ${{ inputs.mode }}
+          PUBLISHED_TAG: ${{ inputs.published_tag }}
+          CANDIDATE_SHA: ${{ inputs.candidate_sha }}
         run: |
-          candidate=$(node -p 'require("./package.json").version')
-          python dev/package.py rehearse --version "$candidate" --commit "$GITHUB_SHA"
+          output=$(mktemp -d)
+          case "$MODE" in
+            published)
+              test -z "$CANDIDATE_SHA"
+              sh dev/rehearse-release.sh published "$PUBLISHED_TAG" "$output"
+              ;;
+            candidate)
+              test -z "$PUBLISHED_TAG"
+              test "$CANDIDATE_SHA" = "$GITHUB_SHA"
+              sh dev/rehearse-release.sh candidate "$CANDIDATE_SHA" "$output"
+              ;;
+            *) exit 2 ;;
+          esac

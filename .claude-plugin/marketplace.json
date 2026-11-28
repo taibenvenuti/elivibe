@@ -1,0 +1,14 @@
+{
+  "name": "elivibe-marketplace",
+  "description": "eliVibe for Claude Code",
+  "owner": {
+    "name": "Tai Benvenuti"
+  },
+  "plugins": [
+    {
+      "name": "elivibe",
+      "description": "Conceptual explanations for technical handoffs in Claude Code.",
+      "source": "./skills"
+    }
+  ]
+}

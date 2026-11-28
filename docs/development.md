@@ -14,12 +14,13 @@ This sets up locked Python and Node **development** dependencies and checksum-ve
 
 ## Native OMP smoke
 
-Use the [official OMP 19.2.1 Linux x64 binary](https://github.com/can1357/oh-my-pi/releases/download/v19.2.1/omp-linux-x64), SHA-256 `e8b937f9bf023baa147bdd300ad5421af0a6ef8b1f350c47a9a93d5fca94feca`, Python 3.14, and working unprivileged bubblewrap namespaces. [CI](../.github/workflows/ci.yml) supplies the exact checkout's packages. To exercise the candidate built in the [release instructions](release.md#version-and-contents), run from the checkout, using the same shell variables:
+Use the [official OMP 19.2.1 Linux x64 binary](https://github.com/can1357/oh-my-pi/releases/download/v19.2.1/omp-linux-x64), SHA-256 `e8b937f9bf023baa147bdd300ad5421af0a6ef8b1f350c47a9a93d5fca94feca`, Python 3.14, and working unprivileged bubblewrap namespaces. [CI](../.github/workflows/ci.yml) supplies the exact checkout's packages. To exercise the candidate built in the [release instructions](release.md#version-and-contents), use the same shell variables and full source SHA:
 
 ```sh
+git archive --format=tar.gz --output="$output/source.tar.gz" "$sha"
 python3.14 dev/omp_smoke.py --omp "$(command -v omp)" \
   --archive "$assets/elivibe-omp-$version.tar.gz" --skill-archive "$assets/elivibe-$version.zip" \
-  --npm-archive "$npm_tarball"
+  --npm-archive "$npm_tarball" --source-archive "$output/source.tar.gz"
 ```
 
 ### What survived the removal of the side client
@@ -33,7 +34,7 @@ The v0.1.0 Node suite included provider selection, isolated role/payload validat
 | Intentional repeats versus automatic duplicates | Host tests exercise `more`, new ordinary answers, filtered markers and in-turn Light/Full guidance. The native trace counts requests rather than relying on a mocked dispatch. |
 | Turn cleanup, branch, compaction and model changes | Host lifecycle tests cover ambiguous, rewritten and missing source positions, busy admission, cancellation, restoration and selection of the current model. |
 | Preference migration and environmental isolation | Host tests load old preference entries without restoring grants. Generic command/host tests don't need a provider or ambient proxy configuration; the native fixture owns its environment and private loopback endpoint. |
-| Discovery and upgrade/removal | Native OMP inspects the extension and explicit-only skill independently, and checks registry install, version changes, removal and the unrelated plugin registration. An actual GitHub ref install is a separate check. |
+| Discovery and upgrade/removal | Native OMP inspects the extension and explicit-only skill independently, and checks registry install, version changes, removal and the unrelated plugin registration. It also checks the clean Git export as a source-root package, not a fetch from GitHub. |
 
 Keep developer scripts in `dev/`, not root `tools/`: OMP discovers scripts in an installed plugin's `tools/` as custom tools, including when installed from a Git checkout.
 
@@ -41,9 +42,32 @@ Keep developer scripts in `dev/`, not root `tools/`: OMP discovers scripts in an
 
 The native sandbox checks its own non-root identity, dropped capabilities, distinct loopback-only network namespace and lack of an external route. Hosted mode additionally requires the expected enforced AppArmor stack. The [runner preflight](../.github/native-namespace.sh) is for disposable hosted Ubuntu runners only. Do not run it on a workstation or relax global policy to make a smoke pass. Synthetic loopback responses make request payloads inspectable without exposing a developer's normal profile or credentials. They do not establish provider support, reader outcomes or live quality.
 
+## Codex and Claude Code preview checks
+
+Use Codex CLI **0.162.1** and Claude Code **2.1.291** on Linux x64; record their `--version` output, the exact checkout and archive identity, and the discovery scope. Build or obtain the review ZIP as described in the [release build](release.md#version-and-contents). Test it **and** the checkout marketplace in separate scratch projects/profiles; do not keep both copies visible. Keep the extraction outside discovery roots and compare the installed skill and Codex policy with the reviewed bytes. See [installation](installation.md) for consumer commands.
+
+For local package validation, set `checkout` to the absolute path of the reviewed checkout. Run these from disposable host state, not your normal profile:
+
+```sh
+claude plugin validate "$checkout" --strict
+claude plugin validate "$checkout/skills" --strict
+codex plugin marketplace add "$checkout"
+codex plugin add elivibe@elivibe
+claude plugin marketplace add "$checkout" --scope local
+claude plugin install elivibe@elivibe-marketplace --scope local
+```
+
+- **Codex:** Start `codex app-server` in the scratch project with a disposable Codex home. Initialize, use `skills/list` to check exactly one eliVibe, then `thread/start` and `turn/start` against an isolated loopback fixture. Compare a plain input, the literal `$elivibe` or `$elivibe:elivibe` for the installed route, and a structured `skill` input using the name and path from discovery. Submit a picker selection in the native TUI too. Inspect the actual outgoing request, not the debug prompt builder. After removal, a fresh session should not discover the skill; an unrelated control skill must still be present. A filesystem catalog reinstall with replacement fixture bytes is not a remote Git upgrade.
+- **Claude Code:** Run `claude -p --output-format stream-json --verbose` in the scratch project against a disposable loopback fixture. Check the `system/init` command advertisement and use `--resume` with the same session for the explanation and ordinary follow-ups. Use a fresh session for the missing-source probe. Check that disable and enable in the chosen scope hide and restore the command after restarting; verify removal and compare discovery in a sibling project for `local`, `project`, and `user` scope. `--plugin-dir "$checkout/skills"` is a separate session-only check.
+- **Both:** Use a [synthetic handoff](qa-examples.md) and keep the delivered answer intact. Ask a focused question about an explicitly unchecked outcome, deepen it with an ordinary follow-up, then return to unrelated work. Inspect the actual request for explicit activation, earlier assistant messages and inline focus, and the absence of **new** activation on the unrelated turn. Test a bare command in a fresh thread separately from a self-contained conceptual question. Inspect payload, rendered fixture and host tool results separately. Use bounded deterministic replies, no real credentials and no ambient account state; an isolated profile is not itself a network sandbox.
+
+Repository checks validate manifest metadata, package boundaries and byte identity; they do not drive Codex/Claude inference. Local CLI validation and discovery are not hosted CI, anonymous GitHub acquisition, or directory validation. For future submission review, compare the narrow package with [OpenAI's ZIP contract](https://developers.openai.com/plugins/deploy/submission) and Anthropic's [strict CLI and portal checklist](https://code.claude.com/docs/en/plugins/publish#submit-to-anthropics-directory). Check the README, support and privacy URLs against the actual public ref. Do not upload or submit during development.
+
+No mandatory provider CI. An authorized optional walkthrough uses the host's existing route without new grants, endpoint overrides or credential copying. The Codex live attempt stopped before output on HTTP 401; Claude Code had no authorized route and made no live request. Neither is a reason to substitute scripted text for a real answer or work around the host's access controls. See [Product QA](product-qa.md) for what the trials observed.
+
 ## Teaching and first-use review
 
-Use a meaningful [synthetic handoff](qa-examples.md). In a working, authorized OMP conversation, enter `/elivibe`, ask one focused question and try `/elivibe more`. Compare with the untouched report: can a reader explain why the system behaves that way or make a better-informed decision? A passing payload assertion, a scripted answer and an actual model-generated response answer different questions. Label each precisely; do not attribute implementer observations to independent readers. Record sanitized excerpts and meaningful failures only. Do not copy private sessions, ask for extra provider access or start an external evaluation service.
+Use a meaningful [synthetic handoff](qa-examples.md). In a working, authorized conversation, invoke the command for the installed host, ask a focused question and try deepening it (OMP also offers `/elivibe more`). Compare with the untouched report: can a reader explain why the system behaves that way or make a better-informed decision? A passing payload assertion, a scripted answer and an actual model-generated response answer different questions. Label each precisely; do not attribute implementer observations to independent readers. Record sanitized excerpts and meaningful failures only. Do not copy private sessions, ask for extra provider access or start an external evaluation service.
 
 ## Dependency and repository policy
 

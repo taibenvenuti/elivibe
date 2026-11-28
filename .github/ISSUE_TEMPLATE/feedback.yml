@@ -9,15 +9,15 @@ body:
     id: environment
     attributes:
       label: Version and environment
-      description: If known, include your eliVibe version, installation source, host and operating system. No local paths or account details.
-      placeholder: v1.0.0 GitHub tag, OMP 19.2.1, Linux x64
+      description: If known, include the eliVibe version and install source, host and version (Oh My Pi, Codex CLI, or Claude Code CLI), and operating system. Say whether you used the OMP adapter, a packaged skill or a standalone skill. No local paths or account details.
+      placeholder: eliVibe v1.0.0 from npm, Oh My Pi 19.2.1 adapter, Linux x64
     validations:
       required: false
   - type: textarea
     id: feedback
     attributes:
       label: What helped or got in the way?
-      description: Was an explanation helpful, confusing, repetitive or misleading? Name the concept and what you can now explain, or what is still unclear. For an install or command issue, say which step and what happened.
+      description: Was an explanation helpful, confusing, repetitive or misleading? Name the concept and what you can now explain, or what is still unclear. For an install or command issue, include the step or exact invocation and what happened.
     validations:
       required: true
   - type: textarea

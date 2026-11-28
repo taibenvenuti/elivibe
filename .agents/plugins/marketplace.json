@@ -1,0 +1,20 @@
+{
+  "name": "elivibe",
+  "interface": {
+    "displayName": "eliVibe"
+  },
+  "plugins": [
+    {
+      "name": "elivibe",
+      "source": {
+        "source": "local",
+        "path": "./skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}
