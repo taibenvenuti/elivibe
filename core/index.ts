@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Tai Benvenuti
+// SPDX-License-Identifier: GPL-3.0-only
+
 export const MODES = ["off", "manual", "light", "full"] as const;
 export const DEPTHS = ["auto", "brief", "detailed"] as const;
 export type Mode = typeof MODES[number];

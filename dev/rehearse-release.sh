@@ -1,4 +1,7 @@
 #!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-only
+# Copyright (c) 2026 Tai Benvenuti
+
 set -eu
 
 fail() { printf '%s\n' "$*" >&2; exit 1; }
@@ -48,15 +51,19 @@ git -c tar.umask=0022 archive --format=tar -o "$scratch/source.tar" "$sha"
 (umask 022; tar -xf "$scratch/source.tar" -C "$scratch/source")
 source=$scratch/source
 builder=$source/dev/package.py
-manifest_version=$(cd "$source" && node -p 'require("./package.json").version')
 if [ "$mode:$ref" = published:v0.1.0 ]; then
     # Bootstrap had no public npm manifest; reproduce its GitHub assets without --bootstrap.
     builder=$source/tools/package.py
+    license_id=MIT
 else
+    manifest_version=$(cd "$source" && node -p 'require("./package.json").version')
+    license_id=$(cd "$source" && node -p 'require("./package.json").license ?? ""')
+    [ -n "$license_id" ] || fail 'The selected package.json must declare a license'
     valid_version "$manifest_version" || fail 'Expected a stable manifest version X.Y.Z'
     if [ "$mode" = published ]; then
         [ "$version" = "$manifest_version" ] || fail 'Tag and tagged manifest versions differ'
     else
+        [ "$license_id" = GPL-3.0-only ] || fail 'The candidate must declare GPL-3.0-only'
         version=$manifest_version
         if git show-ref --verify --quiet "refs/tags/v$version"; then
             fail "v$version already exists; use published mode for that tag, not candidate mode"
@@ -69,7 +76,7 @@ fi
 printf '%s: v%s from %s\n' "$mode" "$version" "$sha"
 mkdir "$output/github"
 for command in rehearse build verify; do
-    set -- --source-root "$root" --version "$version" --commit "$sha" --license-id MIT
+    set -- --source-root "$root" --version "$version" --commit "$sha" --license-id "$license_id"
     if [ "$command" != rehearse ]; then set -- "$@" --output-dir "$output/github"; fi
     python3.14 "$builder" "$command" "$@"
 done

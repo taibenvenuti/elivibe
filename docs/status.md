@@ -1,5 +1,7 @@
 # Release status and evidence
 
+**Unpublished 2.0.0 candidate:** This branch moves project-owned material to [GPL-3.0-only](../LICENSE). It does not relabel or replace published versions: v0.1.0, v1.0.0, and v1.1.0 remain MIT-licensed. The installation routes and release evidence below concern published versions, not the candidate.
+
 **eliVibe 1.1.0 is public on [GitHub](https://github.com/taibenvenuti/elivibe/releases/tag/v1.1.0) and [npm](https://www.npmjs.com/package/elivibe/v/1.1.0).** The three GitHub release assets and npm tarball were downloaded anonymously and matched the reviewed build. npm's [pinned version](https://registry.npmjs.org/elivibe/1.1.0) and `latest` both resolved to `1.1.0` at verification. Start with the [installation guide](installation.md).
 
 **Next milestone: voluntary early adoption.** The owner accepted the independent pre-promotion audit. Fresh anonymous downloads of all four published files matched the approved digests and the published-mode rebuild byte for byte. The [live walkthroughs on all three hosts](product-qa.md#published-110-live-walkthroughs) are complete. Use [feedback from actual readers](../CONTRIBUTING.md) to decide what to improve; the walkthroughs are not reader feedback or evidence of measured comprehension or market demand.

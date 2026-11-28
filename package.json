@@ -1,8 +1,8 @@
 {
   "name": "elivibe",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "description": "Conceptual explanations for technical handoffs, packaged here as an oh-my-pi extension.",
-  "license": "MIT",
+  "license": "GPL-3.0-only",
   "keywords": ["agent-skills", "oh-my-pi", "explanation", "technical-handoffs"],
   "homepage": "https://github.com/taibenvenuti/elivibe#readme",
   "repository": {

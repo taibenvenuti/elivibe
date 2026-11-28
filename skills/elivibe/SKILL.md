@@ -2,6 +2,8 @@
 name: elivibe
 description: Explain the concepts, relationships, and consequences behind a technical handoff without replacing the original report. Use when the reader explicitly asks for this kind of explanation.
 disable-model-invocation: true
+license: GPL-3.0-only
+# Copyright (c) 2026 Tai Benvenuti
 ---
 
 # eliVibe

@@ -1,11 +1,11 @@
 {
   "name": "elivibe",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "description": "Conceptual explanations for technical handoffs in Codex.",
   "author": {
     "name": "Tai Benvenuti"
   },
-  "license": "MIT",
+  "license": "GPL-3.0-only",
   "skills": "./elivibe",
   "interface": {
     "displayName": "eliVibe",
@@ -14,9 +14,9 @@
     "developerName": "Tai Benvenuti",
     "category": "Productivity",
     "capabilities": [],
-    "websiteURL": "https://github.com/taibenvenuti/elivibe/blob/v1.1.0/README.md",
+    "websiteURL": "https://github.com/taibenvenuti/elivibe#readme",
     "supportURL": "https://github.com/taibenvenuti/elivibe/issues",
-    "privacyPolicyURL": "https://github.com/taibenvenuti/elivibe/blob/v1.1.0/docs/privacy.md",
+    "privacyPolicyURL": "https://github.com/taibenvenuti/elivibe/blob/main/docs/privacy.md",
     "composerIcon": "./icon.png",
     "logo": "./icon.png"
   }

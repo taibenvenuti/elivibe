@@ -63,3 +63,11 @@ Light and Full add instructions to ordinary turns, not a separate judgment or mo
 See the [tested CLI combinations](https://github.com/taibenvenuti/elivibe/blob/v1.1.0/docs/compatibility.md) and [what reaches the model](https://github.com/taibenvenuti/elivibe/blob/v1.1.0/docs/privacy.md). A successful installation is not a measurement of teaching effectiveness.
 
 [Share reader feedback](https://github.com/taibenvenuti/elivibe/issues/new?template=feedback.yml) · [Contribute a small fix or example](https://github.com/taibenvenuti/elivibe/blob/v1.1.0/CONTRIBUTING.md) · [Review more examples](https://github.com/taibenvenuti/elivibe/blob/v1.1.0/docs/product-qa.md)
+
+## License
+
+Copyright (c) 2026 Tai Benvenuti.
+
+This branch prepares the unpublished 2.0.0 candidate. Its project-owned code, skill, artwork, documentation, tests, and tools are licensed under [GPL-3.0-only](LICENSE). The published v0.1.0, v1.0.0, and v1.1.0 releases and their artifacts remain under MIT; the quickstarts above still install v1.1.0.
+
+Commercial use, private or internal use, and private modifications are allowed without publishing your changes. If you distribute covered copies or derivatives, follow the GPL, including preserving required notices and providing corresponding source as required. The license does not automatically apply to your inputs or generated explanations. If an output contains protected material from the project or elsewhere, the applicable rights and terms still matter.

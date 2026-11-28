@@ -10,10 +10,10 @@ on:
           - candidate
         default: published
       published_tag:
-        description: Published mode only (defaults to latest reachable stable annotated tag)
+        description: Published mode only; reproduce the tagged artifacts with their original license (defaults to highest reachable stable annotated tag)
         type: string
       candidate_sha:
-        description: Candidate mode only; reviewed full SHA of the selected branch
+        description: Candidate mode only; full reviewed SHA of the selected branch with its untagged GPL-3.0-only version
         type: string
 permissions:
   contents: read

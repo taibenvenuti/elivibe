@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Tai Benvenuti
+// SPDX-License-Identifier: GPL-3.0-only
+
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import type { ExtensionAPI, ExtensionContext, SessionEntry as Entry, SessionMessageEntry } from "@oh-my-pi/pi-coding-agent";

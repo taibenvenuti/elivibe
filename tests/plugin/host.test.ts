@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Tai Benvenuti
+// SPDX-License-Identifier: GPL-3.0-only
+
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";

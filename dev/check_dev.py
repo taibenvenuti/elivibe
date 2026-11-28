@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-only
+# Copyright (c) 2026 Tai Benvenuti
+
 """Validate checked-in development configuration, active docs and commit subjects."""
 
 import json
@@ -46,6 +49,10 @@ def configuration() -> None:
     )
     manifest = json.loads(Path("package.json").read_bytes())
     validate_manifest(manifest, project["project"]["version"])
+    require(
+        project["project"].get("license") == manifest["license"],
+        "Python developer project license does not match package.json",
+    )
     validate_checkout_metadata(Path.cwd(), manifest["version"])
     lock = json.loads(Path("package-lock.json").read_bytes())
     packages = lock["packages"]

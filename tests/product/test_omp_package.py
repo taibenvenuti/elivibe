@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-only
+# Copyright (c) 2026 Tai Benvenuti
+
 import hashlib
 import io
 import json
@@ -26,12 +29,21 @@ CODEX_SKILL = "skills/elivibe/agents/openai.yaml"
 CODEX_PLUGIN = "skills/.codex-plugin/plugin.json"
 CODEX_CATALOG = ".agents/plugins/marketplace.json"
 CODEX_LICENSE = "skills/LICENSE"
+SKILL_LICENSE = "skills/elivibe/LICENSE"
+GPL_SHA256 = "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
 PLUGIN_ICON = "skills/icon.png"
+PLUGIN_ICON_SOURCE = "skills/icon.svg"
 CLAUDE_CATALOG = ".claude-plugin/marketplace.json"
 CLAUDE_PLUGIN = "skills/.claude-plugin/plugin.json"
 CLAUDE_README = "skills/README.md"
 PORTABLE_CODEX = "elivibe/agents/openai.yaml"
-PORTABLE_FILES = ["elivibe/SKILL.md", PORTABLE_CODEX, "LICENSE", "README.md"]
+PORTABLE_FILES = [
+    "elivibe/SKILL.md",
+    PORTABLE_CODEX,
+    "elivibe/LICENSE",
+    "LICENSE",
+    "README.md",
+]
 GIT_ENV = {**os.environ, "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull}
 
 
@@ -71,7 +83,9 @@ def source(tmp_path):
         CODEX_PLUGIN,
         CODEX_CATALOG,
         CODEX_LICENSE,
+        SKILL_LICENSE,
         PLUGIN_ICON,
+        PLUGIN_ICON_SOURCE,
         CLAUDE_CATALOG,
         CLAUDE_PLUGIN,
         CLAUDE_README,
@@ -89,6 +103,7 @@ def test_package_round_trip(source, tmp_path):
     (root / "README.md").write_bytes(b"unreviewed readme edit")
     (root / "package.json").write_bytes(b"unreviewed manifest edit")
     (root / CODEX_SKILL).write_bytes(b"unreviewed policy edit")
+    (root / SKILL_LICENSE).write_bytes(b"unreviewed skill license edit")
     checked = tmp_path / "checked"
     checked.mkdir()
     command = [
@@ -110,7 +125,7 @@ def test_package_round_trip(source, tmp_path):
 
     other = tmp_path / "other"
     other.mkdir()
-    expected = package.artifacts(root, VERSION, sha, license_id="MIT")
+    expected = package.artifacts(root, VERSION, sha, license_id="GPL-3.0-only")
     package.build(other, expected)
     assert {path.name: path.read_bytes() for path in checked.iterdir()} == {
         path.name: path.read_bytes() for path in other.iterdir()
@@ -128,7 +143,12 @@ def test_package_round_trip(source, tmp_path):
         assert archive.namelist() == PORTABLE_FILES
         assert archive.read(PORTABLE_CODEX) == (ROOT / CODEX_SKILL).read_bytes()
         assert all(not member.is_dir() for member in archive.infolist())
-        assert archive.read("LICENSE") == (ROOT / "LICENSE").read_bytes()
+        license_text = archive.read("LICENSE")
+        assert (ROOT / CODEX_LICENSE).read_bytes() == license_text
+        assert (ROOT / SKILL_LICENSE).read_bytes() == license_text
+        assert hashlib.sha256(license_text).hexdigest() == GPL_SHA256
+        assert license_text == (ROOT / "LICENSE").read_bytes()
+        assert archive.read("elivibe/LICENSE") == license_text
         assert archive.read("README.md") == (ROOT / "README.md").read_bytes()
         archive.extractall(install)
     with tarfile.open(checked / native) as archive:
@@ -140,6 +160,14 @@ def test_package_round_trip(source, tmp_path):
         assert (plugin / relative).read_bytes() == (ROOT / relative).read_bytes()
     skill = plugin / "skills/elivibe/SKILL.md"
     assert skill.read_bytes() == (install / "elivibe/SKILL.md").read_bytes()
+    assert skill.read_bytes().splitlines()[3:7] == [
+        b"disable-model-invocation: true",
+        b"license: GPL-3.0-only",
+        b"# Copyright (c) 2026 Tai Benvenuti",
+        b"---",
+    ]
+    manifest = json.loads((plugin / "package.json").read_bytes())
+    assert manifest["license"] == "GPL-3.0-only"
 
 
 def test_package_version_and_tag_require_exact_commit(source):
@@ -200,6 +228,7 @@ def test_offline_npm_pack_agrees_with_checkout_and_release(source, tmp_path):
     "overrides",
     [
         {"engines": {"node": ">=24"}},
+        {"license": "MIT"},
         {"scripts": {"prepare": "false"}},
         {"private": True},
         {"files": ["tests"]},
@@ -257,6 +286,7 @@ def test_committed_codex_policy_cannot_enable_implicit_invocation(source, conten
     [
         (CODEX_PLUGIN, b"./elivibe", b"..", "invalid Codex plugin manifest"),
         (CODEX_PLUGIN, VERSION.encode(), b"9.9.9", "invalid Codex plugin manifest"),
+        (CODEX_PLUGIN, b"GPL-3.0-only", b"MIT", "invalid Codex plugin manifest"),
         (
             CODEX_PLUGIN,
             b"./icon.png",
@@ -270,10 +300,22 @@ def test_committed_codex_policy_cannot_enable_implicit_invocation(source, conten
             "invalid Codex plugin directory metadata",
         ),
         (CODEX_CATALOG, b"./skills", b"./", "invalid Codex marketplace catalog"),
-        (CODEX_LICENSE, b"MIT License", b"Changed", "Codex license differs"),
+        (
+            CODEX_LICENSE,
+            b"GNU GENERAL PUBLIC LICENSE",
+            b"Changed",
+            "differs from the root license",
+        ),
+        (
+            SKILL_LICENSE,
+            b"GNU GENERAL PUBLIC LICENSE",
+            b"Changed",
+            "differs from the root license",
+        ),
         (PLUGIN_ICON, b"\x89PNG", b"<svg", "plugin icon must be a 64x64 PNG"),
         (CLAUDE_PLUGIN, b"./elivibe", b"..", "invalid Claude plugin manifest"),
         (CLAUDE_PLUGIN, VERSION.encode(), b"9.9.9", "invalid Claude plugin manifest"),
+        (CLAUDE_PLUGIN, b"GPL-3.0-only", b"MIT", "invalid Claude plugin manifest"),
         (CLAUDE_CATALOG, b"./skills", b"./", "invalid Claude marketplace catalog"),
     ],
 )
@@ -315,6 +357,46 @@ def test_missing_committed_license_rejected(source):
         package.artifacts(root, VERSION, sha)
 
 
+@pytest.mark.parametrize("name", [CODEX_LICENSE, SKILL_LICENSE, PLUGIN_ICON_SOURCE])
+def test_missing_committed_plugin_file_rejected(source, name):
+    root, _ = source
+    (root / name).unlink()
+    with pytest.raises(ValueError, match="unexpected skill tree"):
+        package.artifacts(root, VERSION, commit(root))
+
+
+def test_matching_but_modified_license_copies_rejected(source):
+    root, _ = source
+    for name in ("LICENSE", CODEX_LICENSE, SKILL_LICENSE):
+        path = root / name
+        path.write_bytes(path.read_bytes() + b"\n")
+    with pytest.raises(ValueError, match="LICENSE must contain the unmodified GNU GPL"):
+        package.artifacts(root, VERSION, commit(root))
+
+
+def test_rehearsal_rejects_mit_candidate_before_building(source, tmp_path):
+    root, first = source
+    git(root, "tag", "-am", "Historical release", "v1.0.0", first)
+    manifest = root / "package.json"
+    manifest.write_text(
+        json.dumps({**json.loads(manifest.read_bytes()), "license": "MIT"})
+    )
+    sha = commit(root)
+    output = tmp_path / "rehearsal"
+    output.mkdir()
+    result = subprocess.run(
+        ["sh", str(ROOT / "dev/rehearse-release.sh"), "candidate", sha, str(output)],
+        cwd=root,
+        env=GIT_ENV,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 1, result.stderr
+    assert "The candidate must declare GPL-3.0-only" in result.stderr
+    assert not list(output.iterdir())
+
+
 def test_optional_notice_bundled_outside_skill(source):
     root, _ = source
     (root / "NOTICE").write_bytes(b"synthetic notice")
@@ -329,11 +411,16 @@ def test_optional_notice_bundled_outside_skill(source):
 
 
 @pytest.mark.parametrize(
-    ("version", "license_id"), [(VERSION, "BSD-3-Clause"), (f"{VERSION}-rc.2", "MIT")]
+    ("version", "license_id"),
+    [
+        (VERSION, "BSD-3-Clause"),
+        (VERSION, "MIT"),
+        (f"{VERSION}-rc.2", "GPL-3.0-only"),
+    ],
 )
 def test_package_rejects_invalid_license_assertion(source, version, license_id):
     root, sha = source
-    with pytest.raises(ValueError, match="--license-id must be MIT"):
+    with pytest.raises(ValueError, match="--license-id must be GPL-3.0-only"):
         package.artifacts(root, version, sha, license_id=license_id)
 
 
@@ -355,10 +442,13 @@ def test_package_rejects_invalid_versions(source, version):
         SOURCES[2],
         "package.json",
         "LICENSE",
+        CODEX_LICENSE,
+        SKILL_LICENSE,
         CODEX_SKILL,
         CODEX_PLUGIN,
         PLUGIN_ICON,
         CLAUDE_PLUGIN,
+        PLUGIN_ICON_SOURCE,
     ],
 )
 def test_package_rejects_committed_symlinks(source, relative):
