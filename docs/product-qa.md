@@ -16,18 +16,31 @@ Use the [development checks](development.md) and [native smoke procedure](develo
 
 Count OMP metadata discovery separately from model inference. For an explicit request, expect an ordinary OMP turn, not zero traffic; for in-turn guidance, compare with an equivalent ordinary task, not a fixed number of model calls (a task can use tools or take multiple steps). A synthetic test can establish tested request paths, payloads, and lifecycle behavior. It can't establish how a different host, a real provider, or a particular model will behave, or prove isolation or redaction.
 
-## Published 1.1.0: live evidence still needed
+<a id="published-110-live-evidence-still-needed"></a>
+## Published 1.1.0 live walkthroughs
 
-The [release checks](compatibility.md#tested-combinations-at-github-v110) exercised real CLI installations, files, tool behavior and history with scripted model replies. They did **not** yield a live teaching sample. At release time `codex login status` reported a ChatGPT login; that is not proof of inference access. The unchanged route had returned `workspace routing discovery unauthorized (401)` before the first assistant answer and was not retried. `claude auth status --json` reported `loggedIn: false`, `authMethod: none`; no Claude model request was made. There is no new model output to quote for either host.
-
-For the external audit, use the [published plugin](installation.md) in a disposable project with an already authenticated host. Send each of these as a separate turn; keep the first output even if it is imperfect:
+Each host used the [published plugin](installation.md) in a disposable project. The four turns were:
 
 1. `Write a small function that fingerprints a byte string with SHA-256. Show a synthetic test, say what you ran, and say whether you tested restoring any backup.`
-2. In **Codex**, send `$elivibe:elivibe Explain whether matching fingerprints establish that a backup can be restored.` In **Claude Code**, send `/elivibe:elivibe Explain whether matching fingerprints establish that a backup can be restored.`
-3. Ask in ordinary chat: `Which observation would distinguish the two things you just explained?` Refer to the answer actually delivered, not a predetermined example.
-4. Resume ordinary work: `Add a one-line docstring to the function.`
+2. Invoke the installed command named below with `Explain whether matching fingerprints establish that a backup can be restored.`
+3. Ask in ordinary chat: `Which observation would distinguish the two things you just explained?`
+4. Resume coding: `Add a one-line docstring to the function.`
 
-Record a short sanitized excerpt and what it adds beyond the original handoff. Did it preserve the limits of the test? Did the follow-up address the distinction it actually made? No raw transcripts, credentials or private reports are needed.
+The excerpts are from the first answers in the recorded runs, not authored examples. No backup was restored. On all three hosts, neither the explicit explanation nor the ordinary follow-up called a tool.
+
+**OMP 19.2.1 / GPT-6.2 Sol** (`openai-codex/gpt-6.2-sol`). The RPC session loaded the extracted GitHub `elivibe-omp-1.1.0.tar.gz` through a read-only mount over an existing linked plugin, not an npm install. The handoff reported that the Bun `abc` digest check passed after two failed coding-tool attempts. `/elivibe` answered: “A fingerprint can check recovered bytes; it can’t supply missing ones.” The follow-up proposed restoring into a clean environment and checking the recovered data was complete and usable. The final turn used one evaluation and returned a one-line JS doc comment in chat; no project file was edited.
+
+The Codex and Claude Code marketplace checkouts both resolved to the [v1.1.0 release commit](https://github.com/taibenvenuti/elivibe/commit/13b0cb94f66f6f9aa7793737201a5f95e2674997).
+
+**Codex CLI 0.172.0 / GPT-6.2 Sol** (`gpt-6.2-sol`, high reasoning). Installation used `codex plugin marketplace add taibenvenuti/elivibe@v1.1.0`, then `codex plugin add elivibe@elivibe`. The configured model returned `modelNotFound` before any answer; the owner approved GPT-6.2 Sol for one run in the same ChatGPT profile. The Python `abc` digest assertion passed. App Server selected the installed `$elivibe:elivibe` skill: “A backup restore can also depend on having the decryption key and every required backup piece, and on the recovered data opening in the intended application.” The follow-up proposed checking a known record in the restored application. The final turn returned the function with a one-line Python docstring in chat; it did not edit a file.
+
+**Claude Code 2.1.332 / Claude Sonnet 5.5** (`claude-sonnet-5-5`, first-party Claude.ai). Installation used `claude plugin marketplace add 'taibenvenuti/elivibe#v1.1.0' --scope local`, then `claude plugin install elivibe@elivibe-marketplace --scope local`. Python tests passed for the empty string and `abc`. `/elivibe:elivibe` loaded the installed skill: “The fingerprint compares two things. It says nothing about whether either one is good.” The follow-up proposed checking a known query after a scratch restore and limited the conclusion to the data checked. Back in ordinary coding, Claude refined the existing one-line docstring in its scratchpad file and reran the tests successfully.
+
+**Claude’s digest caveat.** Claude said that if a backup and its stored reference digest are both damaged or tampered with, they “will still agree.” They **can** agree if someone also replaces the reference with the digest of the altered bytes. Independent corruption does not necessarily preserve a match. This single observation did not change the teaching skill.
+
+These live responses show what the named models did on one synthetic task. They are not reader feedback, measured comprehension gains, market validation, or lifecycle tests on the updated CLIs.
+
+**Earlier release-time attempts.** The [pinned release checks](compatibility.md#tested-combinations-at-github-v110) used real CLIs with scripted replies. Codex 0.162.1 reported a ChatGPT login, but its route had returned `workspace routing discovery unauthorized (401)` before the first answer; the unchanged blocker was not retried. Claude Code 2.1.291 reported `loggedIn: false`, `authMethod: none`, and sent no live model request. Neither earlier check produced a live teaching sample.
 
 ## Historical cross-harness candidate: native trace versus first real outcome
 
