@@ -4,6 +4,8 @@ eliVibe ships one teaching skill for Codex, Claude Code, and Oh My Pi (OMP). Cod
 
 ## Tested combinations at GitHub v1.1.0
 
+The rows below are the pinned **historical, scripted release-lifecycle evidence** (Codex 0.162.1, Claude Code 2.1.291, OMP 19.2.1). They are not the versions of the accepted live walkthroughs, which are summarized in [current live coverage](#current-live-coverage).
+
 | Host tested (Linux x64) | Source and explicit entry point | Activation and follow-up | Lifecycle and inference evidence |
 |---|---|---|---|
 | Codex CLI 0.162.1 | Public GitHub marketplace `elivibe@elivibe`: `$elivibe:elivibe` (or the `$` picker). Public standalone ZIP: `$elivibe`. | Explicit only. Ordinary matching text omitted the skill; the appropriate explicit selection loaded it. Put focus or depth in the invocation, then follow up in ordinary chat. No persistent eliVibe modes. | The tag resolved to the release commit; all seven installed files matched. Scripted turns preserved the handoff and delivered explanation between two actual sandboxed coding changes. Both removals preserved the unrelated skill. Preview tests also covered refresh, disable/enable and fixture rollback. No live answer: the existing route had returned HTTP 401. |
@@ -11,6 +13,18 @@ eliVibe ships one teaching skill for Codex, Claude Code, and Oh My Pi (OMP). Cod
 | [Oh My Pi (OMP) 19.2.1](https://github.com/can1357/oh-my-pi/releases/tag/v19.2.1) | Public npm `elivibe@1.1.0`, GitHub release tag, or linked public offline archive: `/elivibe`. Bundled skill or public standalone ZIP: `/skill:elivibe`. | Manual (default) and Off don't teach automatically; Light and Full guide the ordinary answer. Depth is independent. Use `/elivibe <question>`, source-bound `/elivibe more`, or ordinary chat. Skill alone has no adapter controls. | GitHub installed all 57 tracked files. Public npm and the offline archive each matched all six native files. Scripted turns exercised real writes, the explicit tool veto and scoped removal. Public npm pinned reinstall and rollback to 1.0.0 passed; this was not `omp plugin upgrade`. Earlier live OMP evidence is historical. |
 
 For all three, the explanation supplements the handoff instead of replacing it. A bare request with no handoff in view needs the source; a self-contained concept question can get general background without a report. The OMP adapter handles missing source locally when the request needs a report. On Codex and Claude Code the distinction is skill guidance in an ordinary model turn, not a local check. Skill-only routes request no tools for explanation but do not impose the OMP adapter's explicit-turn tool veto. Unrelated work needs no new activation; previously invoked guidance may still be in conversation history. There is no second eliVibe inference client: explicit explanations and follow-ups can consume ordinary host requests and incur host costs; OMP automatic guidance adds no separate explanation request.
+
+## Current live coverage
+
+The [published 1.1.0 live walkthroughs](product-qa.md#published-110-live-walkthroughs) are real four-turn sequences on a synthetic task, on Linux x64 with the v1.1.0 release bytes. They are separate from the scripted lifecycle rows above; the QA record holds the observations.
+
+| Host (Linux x64) | Model | Route |
+|---|---|---|
+| OMP 19.2.1 | `openai-codex/gpt-6.2-sol` (GPT-6.2 Sol) | Session-only read-only mount of the extracted anonymous GitHub `elivibe-omp-1.1.0.tar.gz` over an existing linked plugin; `/elivibe`. Not an npm install or reinstall. |
+| Codex CLI 0.172.0 | `gpt-6.2-sol`, high reasoning, provider `openai`, one-run approval | GitHub marketplace pin `taibenvenuti/elivibe@v1.1.0`, then `elivibe@elivibe`; `$elivibe:elivibe`. |
+| Claude Code 2.1.332 | `claude-sonnet-5-5` (Claude Sonnet 5.5), first-party Claude.ai | Local-scope marketplace `taibenvenuti/elivibe#v1.1.0`, then `elivibe@elivibe-marketplace`; `/elivibe:elivibe`. |
+
+These are first-use observations on one synthetic task per host. They do not add lifecycle checks on the newer CLI pins, and they do not establish provider generalization, other platforms or desktop surfaces, learning gains, or reader feedback.
 
 ## Discovery and package contract
 

@@ -2,6 +2,8 @@
 
 **eliVibe 1.1.0 is public on [GitHub](https://github.com/taibenvenuti/elivibe/releases/tag/v1.1.0) and [npm](https://www.npmjs.com/package/elivibe/v/1.1.0).** The three GitHub release assets and npm tarball were downloaded anonymously and matched the reviewed build. npm's [pinned version](https://registry.npmjs.org/elivibe/1.1.0) and `latest` both resolved to `1.1.0` at verification. Start with the [installation guide](installation.md).
 
+**Next milestone: voluntary early adoption.** The owner accepted the independent pre-promotion audit. Fresh anonymous downloads of all four published files matched the approved digests and the published-mode rebuild byte for byte. The [live walkthroughs on all three hosts](product-qa.md#published-110-live-walkthroughs) are complete. Use [feedback from actual readers](../CONTRIBUTING.md) to decide what to improve; the walkthroughs are not reader feedback or evidence of measured comprehension or market demand.
+
 ## Release identity and reproducibility
 
 [PR #6](https://github.com/taibenvenuti/elivibe/pull/6) merged from signed head `2839a896862fee1749883f4b3166a1f5edb61ce4` onto protected parent `15d6d849677b1509396352ff3e5348a4bff33852`. The [corrected review receipt](https://github.com/taibenvenuti/elivibe/pull/6#issuecomment-7237293390) supersedes the preview ledger below. Both the head and [actual squash](https://github.com/taibenvenuti/elivibe/commit/13b0cb94f66f6f9aa7793737201a5f95e2674997) have tree `0a51a47c8f8660c80652399677333587eafe09d8`. The pinned release policy classified the real `feat(skills): support Codex and Claude Code` history as a minor after `v1.0.0`. [PR checks](https://github.com/taibenvenuti/elivibe/actions/runs/46130713434), [ready-for-review checks](https://github.com/taibenvenuti/elivibe/actions/runs/46130862875), the [exact-head rehearsal](https://github.com/taibenvenuti/elivibe/actions/runs/46130710117) and [release commit main CI](https://github.com/taibenvenuti/elivibe/actions/runs/46130969389) passed. The release commit's five clean-export artifacts matched the independently reviewed bytes.
@@ -22,13 +24,15 @@ To reproduce, use [published mode](release.md#published-reproduction-or-candidat
 
 ### Public consumer acceptance — Linux x64
 
+These release-time checks used real hosts and scripted model replies. They establish installation and lifecycle behavior on the versions listed, separately from the later live teaching samples.
+
 | Host | Public acquisition, invocation and removal | Evidence boundary |
 |---|---|---|
 | Codex CLI 0.162.1 | GitHub marketplace resolved the release tag and installed all seven exact files. The public ZIP supplied identical skill and policy bytes. Each route discovered one skill. Seven native selection turns distinguished ordinary input, `$elivibe:elivibe` (plugin) and `$elivibe` (ZIP). Removal kept the unrelated skill. | Six packaged conversation turns with scripted inference: actual coding changes before and after, exact handoff and delivered supplement in follow-up, unchecked outcome and missing source. No live answer. |
 | Claude Code 2.1.291 | `--scope local` marketplace checkout matched the release SHA, and all seven installed files matched. ZIP had all four exact members. Each route exposed one command: `/elivibe:elivibe` or standalone `/elivibe`. Scoped removal preserved unrelated skills and scratch files. | Scripted turns carried focused arguments and source inline, followed up without reinvocation, and later completed a real `Read`. No authenticated live route. |
 | Oh My Pi 19.2.1 | The GitHub tag installed all 57 tracked files; public npm and the linked public offline archive each matched all six reviewed files. Each exposed one extension and one skill. The ZIP exposed only the skill. All removals preserved unrelated registrations and files. Both retained offline rollback and public npm pinned rollback restored 1.0.0. | Nine scripted requests on public npm, eight each on GitHub and offline native, and five on the standalone ZIP. Native routes exercised Manual, source-bound `more`, explicit tool veto and real ordinary writes. No inference credentials or extra endpoints were used. The npm dependency and installed lock integrity matched the actual public tarball; the registry test used pinned reinstall, not `upgrade`. |
 
-The public GitHub source ZIP fallback also identified the release SHA and contained the same skill and policy. No official directory listing was requested. See the [compatibility limits](compatibility.md) and the [owner's live walkthrough](product-qa.md#published-110-live-evidence-still-needed) before the external audit; the historical OMP example is not a 1.1.0 model result.
+The public GitHub source ZIP fallback also identified the release SHA and contained the same skill and policy. No official directory listing was requested. See the [compatibility matrix](compatibility.md) for which versions and routes were exercised in each kind of check.
 
 ## Historical cross-harness candidate evidence
 
@@ -94,4 +98,4 @@ The three public GitHub assets and the public npm tarball were built from the ex
 | [SHA256SUMS](https://github.com/taibenvenuti/elivibe/releases/download/v1.0.0/SHA256SUMS) | `8dbfc1d120874d7ace6ed0bfb2a704fa1e6feb22457259bb6e5d748b685d4f8b` |
 | [elivibe-1.0.0.tgz](https://registry.npmjs.org/elivibe/-/elivibe-1.0.0.tgz) | `5954851ee4f7a621eda8ed5d4bffbc63e3e945cabeb807bf7432ffb49947db5c` |
 
-The v1.0.0 evidence above is historical. Next: the external independent audit of the published 1.1.0 bytes and journeys, including the outstanding new-host live evidence, before promotion. No directory submission, additional host support, reader outcomes or market demand are established by this release.
+The v1.0.0 evidence above is historical; it does not extend the coverage of the published 1.1.0 walkthroughs.
